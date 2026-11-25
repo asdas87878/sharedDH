@@ -42,7 +42,7 @@ Its feel and layout logic, in our kit, our colours and our pictures. `Config.Ind
 | Size | about 85% of the screen's height, heavy type | 65%, 12 to 20 points | 81% on a PC, nearly the whole of a phone, 22 to 46 points |
 
 - **Files:** `UI/IndexPanel` is the door (server's words, hub, checks); `UI/IndexBook` the player's Index and its sums;
-  `UI/IndexWindow` the new window; `UI/IndexOld` the old one, word for word; `UI/LandBanners` the pictures. **`IndexService`,
+  `UI/IndexWindow` the new window; `UI/IndexOld` the old one, word for word but for the CLAIM ALL arrow; `UI/LandBanners` the pictures. **`IndexService`,
   the rewards, the remote and the rules are untouched.**
 - **Three layouts** (`SHAPES`): PC, a phone sideways, a phone upright (375 wide); the window is built again as the screen
   turns. Smallest word on a phone 12.3 px; smallest button 32 px high (the tabs and a land's CLAIM!).
@@ -117,7 +117,7 @@ Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictu
   there, so no `src/` line but a comment changed. **The partner's Team Create place was not looked at:** the Index was
   deleted there by hand on 2026-11-23; without it the hub's button still works. It has no keeper (the keepers stand at
   Sell, Auras, Sub and Fuse). A redesigned Index panel needs nothing here: it gives `Shop.page("Index", ...)` its opener.
-  Check: `lune run tools/index/ring_test.luau <built place> <a copy of the map place>` (116 checks, the four rings).
+  Check: `lune run tools/index/ring_test.luau <built place> <a copy of the map place>` (141 checks, the five rings; 128 with no map place).
   **Open, for Hugo:** the straight walk from the second back tank to the strip's middle crosses the ring, so the window
   pops up for about half a second on the way (the Sell and Auras rings do the same to the two outer back tanks).
   ![the Index ring's spot](../attachments/index-ring-spot.png)

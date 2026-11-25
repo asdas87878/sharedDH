@@ -3,8 +3,30 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · The first merge: the finished work on one branch (NULLROOM m1, Hugo's PC)
+**State:** branch `merge-finished-2026-11-25`, pushed as a branch, **not on main. Nothing in it has been seen in Studio**, nothing
+uploaded. Hugo, 2026-11-25: "current merge should only merge finished changes"; on the sheets that stay: "all good" (not a yes to any upload).
+- **In it, on main `bb2a35f`:** `pictures-index-offline`, `texts-b1-a3` (merge `16e5298`), `fusing` (`336a54a`), `index-look` (`6d6365b`),
+  `offline-rewards` (`0321638`), `index-ring` (`362451c`). Their own entries follow this one.
+- **Not in it:** `aura-3d` and `leaderboards-2` (Hugo looked at their sheets and wants changes), `air-hop`, `eat-anim` and its v2,
+  `saddles`, `saddles-2`, `endless-options`. The auras are as on main.
+- **Next:** z1 (Suzu) puts `air-hop` and then the same commits `16e5298` and `336a54a` on main, each checked in Studio. **Never rebase or
+  rewrite those two.** m2 then only checks index-look, offline rewards and index-ring in Studio, on top of that main, and **waits until z1
+  says Studio is free**.
+- **How the conflicts were settled:** the partner's Index rules stay (an arrow until the first claim, no callout, no goal line for
+  claims, no Index Oxygen); the CLAIM ALL arrow was moved into both Index windows (`IndexBook.taught`; on a phone held upright the title
+  is smaller while it is up, `TALL_TITLE`). Hugo's B1 line shows after a respawn only. Fusing's rule won over `ring_test`'s older
+  expectation: a ring you are put down on stays shut until you step off and on, at every stall. Notes kept both sides.
+- **Known:** with coins waiting at the first spawn, the Welcome back window (0.8 s) covers the goal line (0.6 s) after about 0.2 s; it
+  cannot happen while `SaveParts.ON` is false. The lesson's step-10 words wait for the next respawn after the first claim.
+- **Off:** `Config.Fuse.On` 0; `Config.Index.Look` 0 (the old window), `Config.Index.On` 0 (the Index, its button and ring);
+  `Config.Offline.On` 0. `texts-b1-a3` has no switch (revert its merge commit).
+- **Checked offline on the result:** texts 33, fusing 164 and 97, Index 73, 138 and 94 (old look), ring 128 (141 with a copy of the place
+  saved 2026-11-25 00:11), offline 123 and 67, auras 61: none failed. StyLua, selene (0 errors, the 3 old warnings), a Rojo build, no
+  type error main did not have.
+
 ## 2026-11-25 · Offline rewards: the Welcome back window, built (NULLROOM o1, Hugo's PC)
-**State:** branch `offline-rewards` (on main `ede1ff7` with `pictures-index-offline`, the chest), **committed, not pushed, not merged.**
+**State:** branch `offline-rewards` (on main `ede1ff7` with `pictures-index-offline`, the chest), **merged on the branch `merge-finished-2026-11-25` (entry above).**
 Nothing uploaded, Studio not touched. All of it, and what must be on: [offline rewards](design/offline-rewards.md).
 - **New:** `OfflineService`, `OfflineController`, `UI/OfflinePanel`, `Config.Offline` with `Config.offlinePay`, the save part "Offline"
   in `Lib/SaveParts` (after the Tank's). **`SaveParts.ON` is still false, so a live game shows and pays nothing.**
@@ -13,23 +35,23 @@ Nothing uploaded, Studio not touched. All of it, and what must be on: [offline r
 - **For the game-code chat:** SaveParts' `NEEDS` now asks for `OfflineService.dump` and `restore`. `tools/studio/save_check.py` does not
   look at the new part yet. Owed coins and the tank's coins must stay in the same snapshot.
 - **Checked offline:** 123 (server, real ProfileStore, two servers) and 67 (window) checks, StyLua, selene (0 errors, the 3 old warnings),
-  a Rojo build, no type errors in the new files. `tools/index/index_test.luau` fails 3 of 73, on the commit this branch started from too
-  (the Shallows' set pays 410 and $5,125; the test expects 41 and $1,230).
+  a Rojo build, no type errors in the new files. `tools/index/index_test.luau` failed 3 of 73 then (the Shallows'
+  set pays 410 and $5,125; the test expected 41 and $1,230); `index-look` put it right.
 - **Owed:** Studio (`OfflineAway`), a phone, the real store, the upload of the chest (Hugo's yes) and its id in `OfflinePanel.Chest`.
 
 ## 2026-11-25 · The Index, richer: land banners, big cards (NULLROOM i1, Hugo's PC)
-**State:** branch `index-look` (from main at ede1ff7 with g1's `pictures-index-offline`), **committed, not pushed, not seen in
+**State:** branch `index-look` (from main at ede1ff7 with g1's `pictures-index-offline`), **merged on the branch `merge-finished-2026-11-25` (entry above), not seen in
 Studio**, nothing uploaded. All of it: [UI](design/ui.md), "The Index, richer". [Before and after](attachments/index-look.png).
 **To turn off:** `Config.Index.Look` 0 (read as the window opens).
 - **New:** `UI/IndexWindow` (the window, three layouts), `UI/IndexBook` (the sums, moved out), `UI/LandBanners`; `UI/IndexPanel` is the
   door now and the old window is `UI/IndexOld`. `IndexService`, `Net.Index`, rewards and rules are unchanged; the names
   `tools/studio/h4_hub_check.py` looks for are kept (not run).
-- **Offline:** `python tools/index/look_picture.py`: 73, 139 and 91 checks, none failed; StyLua, selene (the three old warnings),
+- **Offline:** `python tools/index/look_picture.py`: 73, 139 and 91 checks then (the merge adds the arrow's), none failed; StyLua, selene (the three old warnings),
   the type checker on the changed files, a Rojo build.
 - **Owed:** Studio (`land_banners.py studio` first, then `h4_hub_check.py`), a real phone, Hugo's yes to upload the ten banners.
 
 ## 2026-11-25 · Fusing at the Fuse machine (NULLROOM u1, Hugo's PC)
-**State:** committed on the branch `fusing` (from `ede1ff7`), **not pushed, not merged, not in Studio.** Nothing uploaded. Everything:
+**State:** committed on the branch `fusing` (from `ede1ff7`), **merged on the branch `merge-finished-2026-11-25` (entry above), not in Studio.** Nothing uploaded. Everything:
 [fusing](design/fusing.md). Off: `Config.Fuse.On` 0.
 - **New:** `Shared/Fuse`, `FuseService`, `AquariumService.fuse`, `RideService.fuseCarried`, `UI/FusePanel`, `Config.Fuse`, `tools/fuse/`.
   **Changed:** "Hands" rows carry the carried key as a fourth value (readers that take three are untouched); `StallController` (the
@@ -43,7 +65,7 @@ Studio**, nothing uploaded. All of it: [UI](design/ui.md), "The Index, richer". 
 - **For the tuning chat:** with sizes mixed, 9 fish of a kind make a Colossal (by the plain odds 1 in 250 in the wild, not measured). `Fuse.SameSize` 1 closes it.
 
 ## 2026-11-25 · Texts: B1 stickers on the dock, once a respawn; A3 for Required (NULLROOM f2, Hugo's PC)
-**State:** branch `texts-b1-a3`, **not pushed, not merged, not seen in Studio.** Hugo's picks, how and the numbers: [UI](design/ui.md),
+**State:** branch `texts-b1-a3`, **merged on the branch `merge-finished-2026-11-25` (entry above), not seen in Studio.** Hugo's picks, how and the numbers: [UI](design/ui.md),
 "The dock's lines and Required". [Before and after](attachments/texts-b1-a3.png).
 - **New:** `UI/Sticker`, `UI/ReqLine`, `Lib/RespawnLine`, `Config.DockLine`, `Config.ReqLine`. **Changed:** `DockNotes`
   (`Start` and `waiting` new; its other calls the same), `GoalController`, `LessonPrompt` (the words' look only), `Tags` (the three-line

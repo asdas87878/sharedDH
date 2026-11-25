@@ -7,8 +7,8 @@ dino. The biggest dino grows in size and doesnt inherit traits, but it keeps its
 to the fuse machine as well, same standing on circle mechanic." (with a picture of the reference's fuse window: function
 and flow taken, not its look)
 
-**State (2026-11-25, NULLROOM u1): built on the branch `fusing`, checked offline (261 checks). Not seen in Studio, not played,
-not pushed.** Off switch: `Config.Fuse.On` 0 (read live: the ring opens nothing, the stall says COMING SOON, the server refuses).
+**State (2026-11-25, NULLROOM u1): built, merged on the branch `merge-finished-2026-11-25`, checked offline (261 checks). Not seen
+in Studio, not played.** Off switch: `Config.Fuse.On` 0 (read live: the ring opens nothing, the stall says COMING SOON, the server refuses).
 
 ![the window, drawn from the game's own code, not Studio](../attachments/fuse-window.png)
 

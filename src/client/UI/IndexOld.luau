@@ -1,7 +1,7 @@
 --!strict
--- The Index's window as it was until 2026-11-25 (NULLROOM task h2), kept word for word behind Config.Index.Look 0; the
--- window in use is UI.IndexWindow, and UI.IndexPanel picks between them. Only the player's Index and its sums moved out
--- (UI.IndexBook), so both windows count the same.
+-- The Index's window as it was until 2026-11-25 (NULLROOM task h2), kept behind Config.Index.Look 0; the window in use
+-- is UI.IndexWindow, and UI.IndexPanel picks between them. The player's Index and its sums moved out (UI.IndexBook), so
+-- both windows count the same; the arrow at CLAIM ALL (until the first claim) is in both.
 --   Laid out: the ten lands as tabs across the top; under them the land's cards in a tray, five to a row; under the
 --   tray the land's set (a bar, n / N, what the whole set pays and its claim); along the foot how many kinds are found
 --   of all there are, and CLAIM ALL (n). At the right the chosen kind: its picture, name, rarity, what a Normal plain
