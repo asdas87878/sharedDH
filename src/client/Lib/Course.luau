@@ -13,6 +13,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Endless = require(ReplicatedStorage.Shared.Endless)
 local Lane = require(ReplicatedStorage.Shared.Lane)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
@@ -59,7 +60,9 @@ local function getLane(): Lane.Lane?
 		return nil
 	end
 	local json = Net.Folder:GetAttribute("LanePath")
-	lane = Lane.build(State.Zones, if type(json) == "string" and json ~= "" then json else nil)
+	local laps = Net.Folder:GetAttribute("EndlessLaps")
+	Endless.begin(if type(laps) == "number" then laps else 0)
+	lane = Endless.lane(Lane.build(State.Zones, if type(json) == "string" and json ~= "" then json else nil))
 	laneZones = State.Zones
 	lastS = nil
 	return lane

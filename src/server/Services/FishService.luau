@@ -47,6 +47,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Endless = require(ReplicatedStorage.Shared.Endless)
 local Lane = require(ReplicatedStorage.Shared.Lane)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Variants = require(ReplicatedStorage.Shared.Variants)
@@ -111,7 +112,9 @@ export type Wild = {
 	Saddle: Attachment,
 }
 
-type Slice = { Start: number, End: number, Zone: number, Want: number }
+-- (`Stock`: a slice of the endless Underworld's laps, Shared/Endless: how many fish it holds while someone is near it.
+-- Its Want is that then, and 0 else: nothing swims where nobody is)
+type Slice = { Start: number, End: number, Zone: number, Want: number, Stock: number? }
 
 local FishService = {}
 
@@ -135,6 +138,10 @@ local SYNC = 0.5 -- seconds between reads of a fish's place along the stream off
 local zoneFrom: { number } = {}
 -- each land's first slice (newSlices)
 local zoneSlice: { [number]: number } = {}
+-- where the endless Underworld's first lap begins down the stream, and how long a lap is (Stream.loop; nil: no laps)
+local loopAt: number? = nil
+local lapLength = 0
+local STREAM_LAPS = 2 -- the stream is built through this many laps, and the rest are like them (Stream.loop)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Lands, rolls and slices: a fish's variant and size, which kinds swim where, and the herd's slices
@@ -150,8 +157,12 @@ end
 
 -- The roll for a new fish's variant. Studio only: the workspace's "TestVariant" attribute ("Gold" or "Rainbow") makes
 -- every new fish that one, for looking at them.
-local function rollVariant(): string
-	local variant = Config.rollVariant(rng:NextNumber())
+-- `s`: where the fish is down the stream (in the endless Underworld's laps the odds are a hair better: Config.Endless)
+local function betterAt(s: number): number
+	return if loopAt then Endless.odds(s - loopAt) else 1
+end
+local function rollVariant(s: number): string
+	local variant = Config.rollVariant(rng:NextNumber(), betterAt(s))
 	if RunService:IsStudio() then
 		local testVariant = workspace:GetAttribute("TestVariant")
 		if testVariant == "Silver" or testVariant == "Gold" or testVariant == "Rainbow" then
@@ -165,9 +176,9 @@ end
 -- already (Config.Grand): with too few, the fish is made grand (a Common seldom: the stretch waits for a rarer fish);
 -- with enough, a fish that rolls grand is a Big. Studio only: the workspace's "TestSize" attribute (a name of
 -- Config.SizeOrder) makes every new fish that size, for looking at them.
-local function rollSize(grandNear: number, fishType: Config.FishType): string
+local function rollSize(grandNear: number, fishType: Config.FishType, s: number): string
 	local g = Config.Grand
-	local tier = Config.rollSize(rng:NextNumber(), fishType.Tier)
+	local tier = Config.rollSize(rng:NextNumber(), fishType.Tier, betterAt(s))
 	if grandNear < g.Least and (fishType.Tier ~= "Common" or rng:NextNumber() < g.Common) then
 		local roll = rng:NextNumber() * (g.Giant + g.Huge + g.Colossal)
 		tier = if roll < g.Colossal then "Colossal" elseif roll < g.Colossal + g.Huge then "Huge" else "Giant"
@@ -345,6 +356,35 @@ local function newSlices(): { Slice }
 		end
 		fullest.Want -= 1
 		total -= 1
+	end
+	-- the endless Underworld's laps (Shared/Endless): each as the last land, the same number to the 1,000 studs
+	local last = #zones
+	if loopAt and lapLength > 1 and hasRoster(last) then
+		local n = math.max(1, math.floor(lapLength / sp.Slice + 0.5))
+		local full: { number } = table.create(n, 1)
+		local sum = 0
+		for k = 1, n do
+			local band = Stream.width(stream, loopAt + lapLength * (k - 0.5) / n)
+			full[k] = math.clamp(band / math.max(sp.FullBand, 1), math.clamp(sp.ThinLeast, 0.05, 1), 1)
+			sum += full[k]
+		end
+		local want = math.max(n, math.floor(lapLength / 1000 * sp.PerThousand * sum / n))
+		for lap = 1, Endless.laps() do
+			local from = loopAt + lapLength * (lap - 1)
+			local dealt = 0
+			for k = 1, n do
+				local before = dealt
+				dealt += full[k] / sum
+				local share = math.floor(want * dealt + 1e-6) - math.floor(want * before + 1e-6)
+				table.insert(list, {
+					Start = from + lapLength * (k - 1) / n,
+					End = from + lapLength * k / n,
+					Zone = last,
+					Want = 0,
+					Stock = math.max(1, share),
+				})
+			end
+		end
 	end
 	return list
 end
@@ -914,7 +954,7 @@ local function spawnFish(index: number, entry: boolean?): Wild?
 		local testKind = workspace:GetAttribute("TestKind")
 		fishType = (if type(testKind) == "string" then Config.FishById[testKind] else nil) or fishType
 	end
-	local tier = rollSize(grandNear, fishType)
+	local tier = rollSize(grandNear, fishType, (slice.Start + slice.End) / 2)
 	local body = fishType.Size * Config.sizeScale(tier, fishType)
 	local dodge = rollDodge(body)
 	-- Its pace: its kind's, but a fish of the herd may be born swift (Config.Pace.FastShare, BoltShare): up in the
@@ -949,7 +989,8 @@ local function spawnFish(index: number, entry: boolean?): Wild?
 		at = Vector3.new(at.X, math.max(at.Y, math.min(at.Y + up, ceilingFor(body))), at.Z)
 	end
 	local along = Stream.along(stream, home)
-	local w = make(fishType, rollVariant(), home, at, along, slice.Zone, index, u, lift, dodge, tier, pace, own, swift)
+	local variant = rollVariant(home)
+	local w = make(fishType, variant, home, at, along, slice.Zone, index, u, lift, dodge, tier, pace, own, swift)
 	park(w, not nearAPlayer(at, Config.Spawn.StreamRadius))
 	return w
 end
@@ -1078,9 +1119,17 @@ local function readLive()
 	table.clear(live)
 	local reach = Config.Spawn.LiveReach
 	for z = 1, #zoneFrom do
-		if not alongClear(zoneFrom[z], zoneFrom[z + 1] or stream.Length, reach) then
+		if not alongClear(zoneFrom[z], zoneFrom[z + 1] or loopAt or stream.Length, reach) then
 			live[z] = true
 		end
+	end
+	-- (the endless Underworld's laps, slice by slice: stocked while someone is within reach of one, empty else)
+	for i = #slices, 1, -1 do
+		local slice = slices[i]
+		if not slice.Stock then
+			break
+		end
+		slice.Want = if alongClear(slice.Start, slice.End, reach) then 0 else slice.Stock
 	end
 end
 
@@ -1190,8 +1239,11 @@ local function topUp(limit: number, anywhere: boolean?)
 	readLive()
 	for _, w in wild do
 		if not w.Rider and not w.Reserved and not w.CoastToken then
-			if w.Parked and live[w.Zone] then
-				w.S += meanSpeed(w) * elapsed
+			if w.Parked then
+				local lapped = if loopAt and w.S >= loopAt then sliceAt(w.S) else nil
+				if if lapped then slices[lapped].Want > 0 else live[w.Zone] then
+					w.S += meanSpeed(w) * elapsed
+				end
 			end
 			-- the herd swims on: the fish counts for the slice it has reached
 			local slice = sliceAt(w.S)
@@ -1218,6 +1270,10 @@ local function topUp(limit: number, anywhere: boolean?)
 			local slice = w.Slice
 			-- past the stocked zones, past the zones its kind lives in, or one too many where it is
 			local gone = not slice or w.Zone > w.Type.Home + w.Type.Reach
+			-- (in a lap of the endless Underworld nobody is near)
+			if slice and slices[slice].Stock and slices[slice].Want == 0 then
+				gone = true
+			end
 			if slice and not gone and (per[slice] or 0) > slices[slice].Want then
 				local around, wanted = windowOf(per, slice)
 				gone = around > wanted + math.max(2, wanted * sp.OverBy)
@@ -1741,14 +1797,15 @@ local function visit(player: Player, now: number)
 	end
 	local from = s - p.VisitBehind
 	local grandNear = census(from)
-	local tier = rollSize(grandNear, fishType)
+	local tier = rollSize(grandNear, fishType, from)
 	local body = fishType.Size * Config.sizeScale(tier, fishType)
 	-- on a line that passes a little to one side of the player
 	local u = Stream.share(stream, s, across + rng:NextNumber(-1, 1) * p.VisitAside)
 	local lift = rollLift(body, from, "Hunt")
 	local at = Stream.point(stream, from, Stream.across(stream, from, u, 0, 0, body.X / 2), lift)
 	local zone = Lane.zoneAt(lane, Stream.laneS(stream, from))
-	local w = make(fishType, rollVariant(), from, at, Stream.along(stream, from), zone, sliceAt(from), u, lift, 0, tier)
+	local w =
+		make(fishType, rollVariant(from), from, at, Stream.along(stream, from), zone, sliceAt(from), u, lift, 0, tier)
 	w.Model:SetAttribute("Visitor", true)
 	if RunService:IsStudio() then
 		workspace:SetAttribute("TestVisit", nil)
@@ -1893,13 +1950,13 @@ function FishService.stockNear(s: number, from: number, to: number, count: numbe
 		local grandNear, kinds = census(at)
 		local fishType = pick(zone, kinds)
 		if fishType then
-			local tier = rollSize(grandNear, fishType)
+			local tier = rollSize(grandNear, fishType, at)
 			local half = Stream.width(stream, at) / 2
 			local across = rng:NextNumber(-0.55, 0.55) * half
 			local point = Stream.point(stream, at, across, rng:NextNumber(12, 24))
 			local w = make(
 				fishType,
-				rollVariant(),
+				rollVariant(at),
 				at,
 				point,
 				Stream.along(stream, at),
@@ -1940,13 +1997,37 @@ function FishService.restock()
 	local fresh = newSlices()
 	for i, slice in fresh do
 		if slices[i] then
-			slices[i].Want = slice.Want
+			slices[i].Stock = slice.Stock
+			if not slice.Stock then
+				slices[i].Want = slice.Want
+			end
 		end
 	end
 end
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Init and Start: the folders, the lane survey, the stream, the per-frame steering and the top-up loop
+
+-- The few things of the map past the loop's end (its last flags and a bit of wall) are taken out of the water while the
+-- Underworld goes on: the next lap's start stands there. Kept in ServerStorage, not destroyed.
+local function putTailAway()
+	local map = workspace:FindFirstChild("ClaudeBlockout")
+	local laneFolder = map and map:FindFirstChild("Lane")
+	if not laneFolder then
+		return
+	end
+	local away = Instance.new("Folder")
+	away.Name = "EndlessTail"
+	away.Parent = ServerStorage
+	for _, group in laneFolder:GetChildren() do
+		for _, child in group:GetChildren() do
+			local unit = Endless.unit(child)
+			if unit and Endless.tail(group.Name, child.Name, unit.Z) then
+				child.Parent = away
+			end
+		end
+	end
+end
 
 function FishService.Init()
 	folder = Instance.new("Folder")
@@ -1959,6 +2040,13 @@ function FishService.Init()
 	-- the lane's floor is read off the built map, not taken from the design's curve (Lib/LaneSurvey says why)
 	local pathJson = LaneSurvey.run(Zones.pathJson())
 	lane = Lane.build(zones, pathJson)
+	-- the endless Underworld: how many laps of its last stretch there are (none: Config.Endless.On 0, or another map)
+	local laps, why = Endless.count(lane, workspace.FallenPartsDestroyHeight)
+	if why then
+		warn("[FishService] the Underworld does not go on (Config.Endless): " .. why)
+	end
+	Endless.begin(laps)
+	Net.Folder:SetAttribute("EndlessLaps", laps)
 	-- Roblox destroys whatever falls below this, fish and players alike, and only Studio can change it (not a script)
 	local lowest = 0
 	for _, point in lane.Points do
@@ -1977,8 +2065,38 @@ function FishService.Init()
 	-- the clients build the same lane, to keep what they move themselves inside it (src/client/Lib/Course.luau)
 	Net.Folder:SetAttribute("LanePath", pathJson or "")
 	-- the herd's own water, worked out from the lane and the built map (Lib/Stream says why and how)
-	stream = Stream.build(lane, Zones.bigAssets())
+	local big = Zones.bigAssets()
+	for i = 1, #big do
+		for _, row in Endless.copies(big[i], STREAM_LAPS) do
+			table.insert(big, row)
+		end
+	end
+	stream = Stream.build(Endless.lane(lane, STREAM_LAPS), big)
 	print("[FishService] the herd's stream: " .. stream.Report)
+	if laps > 0 then
+		local long = Endless.lane(lane)
+		local from, length = Stream.loop(stream, long)
+		if from and length then
+			lane, loopAt, lapLength = long, from, length
+			putTailAway()
+			print(
+				string.format(
+					"[FishService] the Underworld goes on: %d laps of %.0f studs from %.0f down the stream",
+					laps,
+					length,
+					from
+				)
+			)
+		else
+			-- (no lap without the herd in it: the map ends where it is built)
+			warn(
+				"[FishService] the Underworld does not go on (Config.Endless): the herd's stream does not cross the loop"
+			)
+			Endless.begin(0)
+			Net.Folder:SetAttribute("EndlessLaps", 0)
+			stream = Stream.build(lane, Zones.bigAssets())
+		end
+	end
 	for z = 1, #zones do
 		zoneFrom[z] = Stream.fromLane(stream, lane.ZoneStart[z])
 	end

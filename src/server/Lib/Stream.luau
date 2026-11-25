@@ -30,6 +30,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Endless = require(ReplicatedStorage.Shared.Endless)
 local Lane = require(ReplicatedStorage.Shared.Lane)
 
 local Stream = {}
@@ -178,6 +179,9 @@ end
 -- starts from.
 local function probe(water: Water, x: number, z: number, floorY: number): number?
 	water.Read += 1
+	-- (in the endless Underworld's laps: the same place in lap 0, where the built map is. Shared/Endless)
+	local built, off = Endless.fold(Vector3.new(x, 0, z))
+	x, z, floorY = built.X, built.Z, floorY - off.Y
 	local top = math.max(math.min(floorY + ABOVE, Config.Oxygen.SurfaceY - 1), floorY + 6)
 	-- (a ray that starts inside a wall taller than that doesn't see the wall: ask first)
 	if #workspace:GetPartBoundsInRadius(Vector3.new(x, top, z), 0.5, water.Overlap) > 0 then
@@ -193,7 +197,7 @@ local function probe(water: Water, x: number, z: number, floorY: number): number
 		end
 		local part = hit.Instance
 		if not water.Named or isSeabed(part) then
-			return if not edge or edge - hit.Position.Y < EDGE_RISE then hit.Position.Y else nil
+			return if not edge or edge - hit.Position.Y < EDGE_RISE then hit.Position.Y + off.Y else nil
 		end
 		if not edge and part:FindFirstAncestor("Props") == nil then
 			edge = hit.Position.Y
@@ -358,6 +362,15 @@ local function locate(stream: Stream, s: number): (number, number)
 	local f = math.clamp(s, 0, stream.Length) / STEP
 	local i = math.min(math.floor(f), stream.Count - 2)
 	return i + 1, f - i
+end
+
+-- A big thing in the stream's lists
+local function addObstacle(stream: Stream, o: Obstacle)
+	table.insert(stream.Obstacles, o)
+	for b = math.floor((o.S - DODGE_REACH) / BUCKET), math.floor((o.S + DODGE_REACH) / BUCKET) do
+		stream.Buckets[b] = stream.Buckets[b] or {}
+		table.insert(stream.Buckets[b], o)
+	end
 end
 
 function Stream.build(lane: Lane.Lane, bigAssets: { { number } }): Stream
@@ -571,11 +584,7 @@ function Stream.build(lane: Lane.Lane, bigAssets: { { number } }): Stream
 				X = x,
 				Z = z,
 			}
-			table.insert(stream.Obstacles, obstacle)
-			for b = math.floor((obstacle.S - DODGE_REACH) / BUCKET), math.floor((obstacle.S + DODGE_REACH) / BUCKET) do
-				stream.Buckets[b] = stream.Buckets[b] or {}
-				table.insert(stream.Buckets[b], obstacle)
-			end
+			addObstacle(stream, obstacle)
 		end
 	end
 
@@ -592,6 +601,103 @@ function Stream.build(lane: Lane.Lane, bigAssets: { { number } }): Stream
 		shut
 	)
 	return stream
+end
+
+-- The stream carried on for the rest of the endless Underworld's laps (Shared/Endless). It was built on the map and its
+-- first two laps (Endless.lane(lane, 2), through both joints, by the same rules as everywhere: the rays fold), so from
+-- the middle of lap 1 to the middle of lap 2 it is one whole lap with a joint in it: that is repeated. `lane` is the lane
+-- with all its laps. Returns where the first lap begins and how long one is, studs of stream; nil (and nothing done) if
+-- the stream does not go that far.
+function Stream.loop(stream: Stream, lane: Lane.Lane): (number?, number?)
+	local e = Config.Endless
+	local laps = Endless.laps()
+	local shift = Endless.shift()
+	local function crossing(z: number): number?
+		for k = stream.Count - 1, 1, -1 do
+			local a, b = stream.Z[k], stream.Z[k + 1]
+			if a <= z and b > z then
+				return (k - 1 + (z - a) / (b - a)) * STEP
+			end
+		end
+		return nil
+	end
+	local first = crossing(e.To)
+	local from, to = crossing(e.To + shift.Z * 0.5), crossing(e.To + shift.Z * 1.5)
+	if laps < 3 or not first or not from or not to then
+		return nil, nil
+	end
+	local lap = to - from
+	local laneFrom, laneTo = Stream.laneS(stream, from), Stream.laneS(stream, to)
+	local laneLap = (lane.Length - lane.ZoneEnd[#lane.ZoneEnd]) / laps -- a lap's length along the lane
+	local base = stream.Count
+	local last = math.floor(to / STEP) + 1 -- the last sample of the built ones that is kept
+	local count = last + math.floor(((laps - 1.5) * lap + to - (last - 1) * STEP) / STEP)
+
+	-- one of the stream's lists carried on: what it holds at the same place of the lap, moved on by `per` each lap (and
+	-- by the hair that is left between the lap's end and its start, less and less)
+	local function carry(list: { number }, per: number)
+		local function read(s: number): number
+			local f = math.clamp(s / STEP, 0, base - 1)
+			local i = math.min(math.floor(f), base - 2)
+			return lerp(list[i + 1], list[i + 2], f - i)
+		end
+		local over = read(to) - (read(from) + per)
+		local more: { number } = table.create(count - last, 0)
+		for k = last + 1, count do
+			local past = (k - 1) * STEP - to
+			local n = math.floor(past / lap)
+			local into = past - n * lap
+			local u = math.clamp(into / math.max(e.Blend, 1), 0, 1)
+			more[k - last] = read(from + into) + per * (n + 1) + over * (1 - u * u * (3 - 2 * u))
+		end
+		for k = last + 1, count do
+			list[k] = more[k - last]
+		end
+	end
+	local map = table.clone(stream.LaneS)
+	for k = last + 1, count do
+		local past = (k - 1) * STEP - to
+		local n = math.floor(past / lap)
+		local f = (from + past - n * lap) / STEP
+		local i = math.min(math.floor(f), base - 2)
+		local into = (lerp(map[i + 1], map[i + 2], f - i) - laneFrom) / (laneTo - laneFrom)
+		stream.LaneS[k] = laneTo + laneLap * (n + into)
+	end
+	carry(stream.X, shift.X)
+	carry(stream.Z, shift.Z)
+	for _, list in { stream.HalfLeft, stream.HalfRight, stream.Left, stream.Right } do
+		carry(list, 0)
+	end
+	for _, list in stream.Floor do
+		carry(list, shift.Y)
+	end
+	stream.Count = count
+	stream.Length = (count - 1) * STEP
+	local rx, rz = acrossOf(stream.X, stream.Z)
+	for k = last, count do
+		stream.RX[k], stream.RZ[k] = rx[k], rz[k]
+	end
+
+	-- the big things of that lap stand in every one after it
+	local own = stream.Obstacles
+	stream.Obstacles, stream.Buckets = {}, {}
+	for _, o in own do
+		if o.S < to then
+			addObstacle(stream, o)
+		end
+		if o.S >= from and o.S < to then
+			for n = 1, math.ceil(laps - 1.5) do
+				local copy = table.clone(o)
+				copy.S += lap * n
+				copy.X += shift.X * n
+				copy.Z += shift.Z * n
+				if copy.S < stream.Length then
+					addObstacle(stream, copy)
+				end
+			end
+		end
+	end
+	return first, lap
 end
 
 -- The band's whole width at s

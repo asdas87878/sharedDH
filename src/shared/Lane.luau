@@ -118,7 +118,12 @@ end
 function Lane.clearanceAt(lane: Lane, s: number): number?
 	local S, C = lane.S, lane.Clearance
 	local best: number? = nil
-	for i = 1, #S do
+	-- (only the points within 100 studs along: the lane can be long, Shared/Endless, and this is asked for every place
+	-- tried for a new fish)
+	for i = indexAt(lane, s - 100), #S do
+		if S[i] > s + 100 then
+			break
+		end
 		if math.abs(S[i] - s) <= 100 and C[i] and C[i] > 0 then
 			best = if best then math.min(best, C[i]) else C[i]
 		end

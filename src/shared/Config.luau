@@ -22,7 +22,7 @@
 --   The sandbox and admin: FeelLog, Sandbox, Admin: the Studio test tools and the playtest admin panel
 --   Server leeway: Net: how much lag and reach the server allows when it judges a grab or a landing
 --   The camera, look and animation: Camera, Look, Animation, Pose, Feel, AimHud: view, light, motion, the reticle
---   Spawning and the dive-in: Spawn, Dive: where wild fish are made, and stepping off the dock into the sea
+--   Spawning and the dive-in: Spawn, Endless, Dive: where wild fish are made, the endless Underworld, stepping off the dock
 --   The auras: Aura: their prices, the stall, and how the flame is drawn
 --   The submarine: Sub, SubTitles: the bought ride to deeper lands, its prices, and the land titles on the way
 --   The Index: Index: what a new kind and a finished land pay, and how the server watches for catches (DRAFT)
@@ -3420,6 +3420,34 @@ Config.Spawn = {
 	SpawnAtDock = true, -- characters spawn at the dock's Spawn marker when there is one
 }
 
+-- The endless Underworld (Hugo, 2026-11-25: "i only want the last part to loop"; docs/design/endless.md, Shared/Endless).
+-- The map's stretch from z = From to z = To goes on again and again, one shift further each lap. Each player's machine
+-- shows its own copy of those same parts at the lap nearest its camera, out in the fog where nothing can be seen; the
+-- server moves nothing. From, To and the shift are the saved place's own (measured with tools/endless/loop.py): they
+-- belong to this map, and on another the loop stays off by itself (Near). Read when a server starts.
+Config.Endless = {
+	On = 0, -- 1: the Underworld goes on; 0: the map ends where it is built (OFF until it has been played)
+	From = 20628, -- the stretch begins here down the map (the Underworld's first neck)
+	To = 23068, -- and ends here, at the same kind of neck
+	ShiftX = -224, -- each lap is this far over to the side,
+	ShiftY = -354.1, -- and this far lower: the same slope goes on (To - From is how far on it is)
+	Laps = 44, -- at most this many laps, 107,360 studs, ten minutes at full pace: past it numbers as big as the places' begin to shake (131,072), and the lane ends as it does today
+	Spare = 400, -- and none nearer than this to Workspace.FallenPartsDestroyHeight
+	Near = 80, -- the loop stays off if its end and its start are further off each other than this (another map)
+	Blend = 400, -- the lane's middle comes over from a lap's end to the next one's start in this many studs
+	-- which things of the map go with the stretch: those whose middle is this far before From or past To, by folder
+	Over = { Seabed = { 48, 32 }, Ground = { 64, 64 }, Walls = { 8, 8 }, Barrier = { 8, 8 } } :: { [string]: { number } },
+	Gate = 60, -- the Underworld's own gate of flags stands across From: flags nearer its start than this aren't shown again
+	Slab = 16, -- parts change laps together in slices of the map this thick
+	Long = 32, -- a part that reaches further than this down the map either way is shown twice (a copy has the odd laps)
+	Ready = 1500, -- a player's machine gets its parts in order when its camera is within this far of From,
+	Batch = 400, -- this many things of the map a frame
+	-- the odds of the better sizes and of the colours, a hair better with distance (Hugo: "just very very slightly")
+	OddsMinute = 0.01, -- by this share of themselves for each minute of riding past the built map's end,
+	OddsPace = 175, -- at this pace, studs a second
+	OddsMost = 0.1, -- and never by more than this share
+}
+
 -- The dive-in (2026-11-16, the user: "make the dive in feel the best possible ... fish spawn too far away initially",
 -- and, asked whether stepping off the start strip should itself be the first hop onto a fish: "Yes, aim for that".
 -- docs/design/dive-in.md). Until then you dropped into 46 studs of water with about four fish in the first room, all
@@ -4344,24 +4372,27 @@ function Config.paceOf(fish: FishType): string
 	return if pace == "Plod" or pace == "Zoom" or pace == "Dart" or pace == "Hunt" then pace else "Cruise"
 end
 
--- A spawned fish's variant, from a roll of 0 to 1 (Config.Variant): "", "Silver", "Gold" or "Rainbow"
-function Config.rollVariant(roll: number): string
+-- A spawned fish's variant, from a roll of 0 to 1 (Config.Variant): "", "Silver", "Gold" or "Rainbow". `more`: each
+-- chance times this (Endless.odds; none: 1)
+function Config.rollVariant(roll: number, more: number?): string
 	local v = Config.Variant
-	if roll < v.Rainbow then
+	local by = more or 1
+	if roll < v.Rainbow * by then
 		return "Rainbow"
-	elseif roll < v.Rainbow + v.Gold then
+	elseif roll < (v.Rainbow + v.Gold) * by then
 		return "Gold"
-	elseif roll < v.Rainbow + v.Gold + v.Silver then
+	elseif roll < (v.Rainbow + v.Gold + v.Silver) * by then
 		return "Silver"
 	end
 	return ""
 end
 
 -- A spawned fish's size, from a roll of 0 to 1 (Config.SizeChance; for a fish of a rarity, by Config.SizeLarge and
--- Config.SizeSmall): one of Config.SizeOrder's names
-function Config.rollSize(roll: number, rarity: string?): string
+-- Config.SizeSmall): one of Config.SizeOrder's names. `more`: the chance of each size over Normal times this
+-- (Endless.odds; none: 1)
+function Config.rollSize(roll: number, rarity: string?, more: number?): string
 	local chance = Config.SizeChance
-	local large = if rarity then Config.SizeLarge[rarity] or 1 else 1
+	local large = (if rarity then Config.SizeLarge[rarity] or 1 else 1) * (more or 1)
 	local small = if rarity then Config.SizeSmall[rarity] or 1 else 1
 	for _, tier in { "Colossal", "Huge", "Giant", "Big", "Tiny" } do
 		roll -= (chance[tier] or 0) * (if tier == "Tiny" then small else large)

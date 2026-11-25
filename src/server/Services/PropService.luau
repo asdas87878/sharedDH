@@ -29,6 +29,7 @@ local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local Endless = require(game:GetService("ReplicatedStorage").Shared.Endless)
 
 -- a prop with boxes out: the boxes, its middle, and since when no player has been near it (nil: one is)
 type Broken = { Out: { BasePart }, Centre: Vector3, ClearSince: number? }
@@ -150,6 +151,8 @@ function PropService.hit(
 		return 0, result
 	end
 	local p = Config.Props
+	-- (in the endless Underworld's laps the server's own props stand in lap 0, and so does BreakAt: Shared/Endless)
+	at = Endless.fold(at)
 	local touched = workspace:GetPartBoundsInRadius(at, reach, overlap)
 	if #touched == 0 then
 		return 0, result
@@ -232,7 +235,7 @@ local function regenerate()
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and root:IsA("BasePart") then
-			table.insert(where, root.Position)
+			table.insert(where, (Endless.fold(root.Position)))
 		end
 	end
 	for model, b in broken do

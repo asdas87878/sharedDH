@@ -35,6 +35,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
+local Endless = require(ReplicatedStorage.Shared.Endless)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local RideController = require(script.Parent.RideController)
 local State = require(script.Parent.Parent.Lib.State)
@@ -565,6 +566,8 @@ local function takeOut()
 				and now - t <= FRESH
 			then
 				if #pieces < p.MaxDebris and (part.Position - eye).Magnitude <= p.DebrisRange then
+					-- (the server's BreakAt is in the map as built; ours stands a lap or more on in the endless Underworld)
+					at = Endless.beside(at, part.Position)
 					local copy = throw(part, at, velocity)
 					if bubbled[model] ~= t then
 						-- once for each hit of a prop: the bubbles and the crunch

@@ -65,6 +65,7 @@ local RunService = game:GetService("RunService")
 
 local AngryStyles = require(ReplicatedStorage.Shared.AngryStyles)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Endless = require(ReplicatedStorage.Shared.Endless)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 local Variants = require(ReplicatedStorage.Shared.Variants)
@@ -1257,7 +1258,8 @@ local function grab(r: Rider, target: any)
 		table.insert(excluded, surface)
 	end
 	params.FilterDescendantsInstances = excluded
-	if workspace:Raycast(root.Position, w.Root.Position - root.Position, params) then
+	-- (in the endless Underworld's laps the server's own map stands in lap 0: Shared/Endless)
+	if workspace:Raycast((Endless.fold(root.Position)), w.Root.Position - root.Position, params) then
 		return deny(r, "Grab", "Blocked", target)
 	end
 	if not FishService.reserve(w, r.Player) then
@@ -1618,7 +1620,9 @@ local function checkCrash(r: Rider, w: Wild)
 	end
 	crashParams.FilterDescendantsInstances = skip
 	local ahead = half + 1 + FishService.ridden(w) * Config.Ride.Surge * 0.12 + c.Reach
-	local hit = workspace:Raycast(root.Position, look * ahead, crashParams)
+	-- (in the endless Underworld's laps the server's own map stands in lap 0: Shared/Endless)
+	local from, lapped = Endless.fold(root.Position)
+	local hit = workspace:Raycast(from, look * ahead, crashParams)
 	local nosed = hit ~= nil and hit.Normal.Y < 0.5 and -look:Dot(hit.Normal) >= c.HeadOn
 	-- The lane's own edge is a wall ride (Config.Wall: the rider's machine turns the fish along it), not a crash:
 	-- nothing is taken and the fish isn't slowed here, unless Wall.EdgeCost says so. What stands IN the lane still is.
@@ -1630,7 +1634,7 @@ local function checkCrash(r: Rider, w: Wild)
 		nosed
 		and hit
 		and wall.On ~= 0
-		and (boundary(hit.Instance) or FishService.inside(hit.Position) <= wall.EdgeBand)
+		and (boundary(hit.Instance) or FishService.inside(hit.Position + lapped) <= wall.EdgeBand)
 	then
 		if not r.Nosed and wall.EdgeCost > 0 and t - r.FastAt <= 0.5 and t >= r.CrashReadyAt then
 			bump(r, wall.EdgeCost, 1)
