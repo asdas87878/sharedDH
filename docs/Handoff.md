@@ -3,6 +3,17 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · The Index, richer: land banners, big cards (NULLROOM i1, Hugo's PC)
+**State:** branch `index-look` (from main at ede1ff7 with g1's `pictures-index-offline`), **committed, not pushed, not seen in
+Studio**, nothing uploaded. All of it: [UI](design/ui.md), "The Index, richer". [Before and after](attachments/index-look.png).
+**To turn off:** `Config.Index.Look` 0 (read as the window opens).
+- **New:** `UI/IndexWindow` (the window, three layouts), `UI/IndexBook` (the sums, moved out), `UI/LandBanners`; `UI/IndexPanel` is the
+  door now and the old window is `UI/IndexOld`. `IndexService`, `Net.Index`, rewards and rules are unchanged; the names
+  `tools/studio/h4_hub_check.py` looks for are kept (not run).
+- **Offline:** `python tools/index/look_picture.py`: 73, 139 and 91 checks, none failed; StyLua, selene (the three old warnings),
+  the type checker on the changed files, a Rojo build.
+- **Owed:** Studio (`land_banners.py studio` first, then `h4_hub_check.py`), a real phone, Hugo's yes to upload the ten banners.
+
 ## 2026-11-25 · Fusing at the Fuse machine (NULLROOM u1, Hugo's PC)
 **State:** committed on the branch `fusing` (from `ede1ff7`), **not pushed, not merged, not in Studio.** Nothing uploaded. Everything:
 [fusing](design/fusing.md). Off: `Config.Fuse.On` 0.

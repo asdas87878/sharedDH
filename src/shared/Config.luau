@@ -3687,6 +3687,7 @@ Config.SubTitles = {
 -- there and spawn: no Secret, as no land's mix has one, and no kind kept out of the herd).
 Config.Index = {
 	On = 1, -- 0: no Index: nothing is marked found and no claim is paid
+	Look = 1, -- the window: 1 the land banners and big cards (UI/IndexWindow, 2026-11-25), 0 the one before it (UI/IndexOld)
 	FirstOxygen = 0.2, -- DRAFT. A kind caught for the first time: this share of what a Normal plain one needs, in max Oxygen,
 	FirstLeast = 100, -- DRAFT. and at least this much (a new player's whole start),
 	FirstCoinSeconds = 100, -- DRAFT. and this many seconds of what a Normal plain one earns in a tank, in coins
