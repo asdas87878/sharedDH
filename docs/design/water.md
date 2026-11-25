@@ -315,6 +315,8 @@ drawn from shapes. It is **not uploaded**: the upload was asked for and is waiti
 has an id, it goes in `LOOK.Picture`, and the two can be compared side by side.
 
 ## Still to do or decide
+- **Clearer from the hub, and add-ons (2026-11-25): tried in Play, nothing in the game.** Pictures, a recommendation and every
+  option: [water ideas](water-ideas.md). The picture itself tints: 18% through is nearer 11% with it counted.
 - Which picture: the pack's or ours.
 - The colour: it is a bright pool blue now. It will want choosing with the light and fog (one of the
   [parked steps](map-structure.md#what-makes-their-map-read-and-where-ours-should-go)).

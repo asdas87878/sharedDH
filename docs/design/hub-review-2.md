@@ -244,6 +244,8 @@ Pens, layout and size should be picked together and built in that one reload. Th
 say never its layout": the user). The hub may follow the reference's sizes and U one to one, with our own models and look.
 
 ## 4. The water's see-through
+**Tried 2026-11-25, with pictures and a recommendation: [water ideas](water-ideas.md)** (it carries on this and section 5).
+
 The surface is four layers (`tools/map/water_look.luau`): white Glass on top (0.35 see-through), then Neon blue (0.76), a
 dark layer (0.78) and a deep blue (0.85). Together they let through about **18%**. The glass on top blocks the most.
 
