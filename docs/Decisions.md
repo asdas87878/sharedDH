@@ -5,6 +5,7 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-25 | **The inventory bar loses the water and wears studs, with a highlight on every caught fish.** "rework the inventory ui so that it 1:1 matches ride a dino. make sure the highlights are accurate, the stud textures, get rid of our water ones etc": the user. Read as the hotbar. The layout and how slots behave follow the reference; the art and colours stay ours (told the user: no 1:1 copy of its look). Undoes 2026-11-17 (the glass fading upward) and 2026-11-18 (the band on the chosen slot only). | [UI](design/ui.md) |
 | 2026-11-25 | **The end of a dive never holds the camera:** it turns while "FISH CAUGHT!" shows: the user. | [Handoff](Handoff.md) |
 | 2026-11-25 | **The seahorse's Oxygen pops twice as often, half the value each, the same overall:** the user. | [Handoff](Handoff.md) |
 | 2026-11-25 | **A land is mostly its own fish; the hook reaches less at the launch and more as you float.** "the lesser fish go into the furthr areas and then the fish from that area dont spawn enough ... you can hook slightly too far and sometimes when you float toward a fish you cant instantly hook": the user. The numbers are Claude's (`Spawn.StrayMost` 0.25, `ReachWeight`, reach 112 to 75 in place of 142 to 56, a kept press), not played yet. | [Handoff](Handoff.md), 2026-11-25 |

@@ -1,22 +1,19 @@
 --!strict
 -- The row of slots at the bottom middle (where the reference has its own): what you carry home this dive. Each slot is
--- a small aquarium: a tile of see-through blue glass with a thick dark outline, a pale line inside it, a shine over
--- its upper half and the water's pattern. A filled one is its rarity's colours behind the glass (gold for a
--- Legendary, the rainbow for a Secret), with the creature's picture and its name cut short. One word above the row:
--- "3 CAUGHT".
+-- a studded plate in the windows' stud (the user, 2026-11-25: "get rid of our water ones"; it was a tile of water
+-- glass): an empty one dark and see-through, a filled one its rarity's colours, solid (gold for a Legendary, the
+-- rainbow for a Secret), with the creature's picture, its name cut short, and its size and colour in words when it has
+-- any. One word above the row: "3 CAUGHT".
 -- The chosen catch has a square white ring a little outside its black outline, as the reference's (measured off the
 -- user's screenshot, 2026-11-17: 5% of a slot thick, 3% out from the outline): the newest catch until the player
 -- clicks another, and any caught slot while the mouse is over it ("it will just be on the last dino caught or the one
 -- you select with the mouse when clicking, but should appear on hover"). A click fires Slots.Selected; back at your
 -- dock, a click also fires Slots.Picked, which holds that fish over the head (AquariumController).
--- The glass fades out toward its top, and its outline does too, but less (the user, 2026-11-17: "retain the texture
--- but make the texture fade out in a gradient to some capacity alongside the outline to a different lesser capacity"),
--- and the picture is bigger than its slot and stands over the slot's top and sides ("scale the icons so that they all
+-- The picture is bigger than its slot and stands over the slot's top and sides ("scale the icons so that they all
 -- overlap the inventory artistically"): the slot reads as what the fish rises out of. Where a fish sits in its picture
 -- goes by its kind of picture (UI.Portrait), so every bust stands the same, every small fish the same.
--- Closer to the reference's (the user, 2026-11-17, measured off their recording): square corners; a black outline,
--- nearly solid; a caught fish's slot nearly solid and brighter, with the water's pattern faint behind and a light rim
--- inside the outline over a darker lip at the foot ("if you catch a fish it feels more satisfying"); the names in
+-- Every caught slot has the light rim inside its black outline over a darker lip at the foot (2026-11-25; from
+-- 2026-11-18 only the chosen one had it); the ring alone says which is chosen. Square corners; the names in
 -- Gotham Black with a thin outline; the fish lower and more in the middle, nearer its name, still over the top edge;
 -- the slots as far apart as the reference's (a gap of an eighth of a slot between their outlines); and a slot grows a
 -- little under the mouse.
@@ -78,12 +75,7 @@ local BLACK = Color3.fromRGB(6, 8, 14) -- the outline: nearly black (it was the 
 
 local holder: Frame
 local count: TextLabel
-local slots: { Kit.Panel } = {}
-local names: { TextLabel } = {}
-local pictures: { Portrait.Portrait } = {}
-local rims: { Frame } = {}
-local lips: { Frame } = {}
-local patterns: { UIGradient } = {}
+local tiles: { any } = {} -- (the Tile of each, below)
 local rings: { Frame } = {}
 
 local keys: { TextLabel } = {}
@@ -94,7 +86,9 @@ type Ride = {
 	Name: TextLabel,
 	Rim: Frame,
 	Lip: Frame,
-	Pattern: UIGradient?,
+	Pattern: ImageLabel,
+	Variant: TextLabel,
+	Size: TextLabel,
 	Ring: Frame,
 	Cap: any, -- (a Shop.Button)
 	Cross: TextButton,
@@ -111,43 +105,42 @@ local selected: number? = nil -- which catch has the white ring (its Key)
 local hovered: number? = nil -- which slot the mouse is over
 local lastCount = 0
 
-local GLASS: Kit.Style = table.clone(Kit.Themes.Glass)
-GLASS.Radius = 0
-GLASS.Outline = OUTLINE
--- No drop shadow: it thickened the foot, so a square slot read as a little taller than wide (the user, 2026-11-17:
--- "they almost look rectangular"). The reference's slots have none either
-GLASS.Drop = 0
-GLASS.Shine = false -- (the pale band over the upper half would sit where the glass has faded out)
-
--- How see-through a slot is from its top (0) to its foot (1), on top of what it is anyway: the glass and its pattern
--- fade most, the shadow under it with the glass
-local function fade(top: number, middle: number): NumberSequence
-	return NumberSequence.new({
-		NumberSequenceKeypoint.new(0, top),
-		NumberSequenceKeypoint.new(0.5, middle),
-		NumberSequenceKeypoint.new(1, 0),
-	})
-end
-local BODY = fade(0.9, 0.4)
--- The outline: solid, with only a touch of the fade at the very top (the user: "make the border more concrete and
--- less transparent and fade differently", then "mainly opaque and more black")
-local EDGE = NumberSequence.new({
-	NumberSequenceKeypoint.new(0, 0.15),
-	NumberSequenceKeypoint.new(0.12, 0),
-	NumberSequenceKeypoint.new(1, 0),
+-- An empty slot's plate: dark, see-through, level top to bottom. No drop shadow (it made a square slot read as taller
+-- than wide: the user, 2026-11-17: "they almost look rectangular")
+local PLATE: Kit.Style = {
+	Top = Color3.fromRGB(26, 38, 62),
+	Bottom = Color3.fromRGB(14, 22, 40),
+	Fade = 0.42,
+	Radius = 0,
+	Outline = OUTLINE,
+	Drop = 0,
+	Bevel = false,
+	Shine = false,
+}
+-- The studs on it: the windows' raised square (Kit.Textures.Emboss), a whole number to a slot so none is cut, fading
+-- toward the foot where the name is
+local STUDS = 4
+local STUDS_EMPTY = 0.62 -- how see-through they are on an empty slot
+local STUDS_CAUGHT = 0.1 -- and on a caught one
+local STUDS_TAIL = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 0),
+	NumberSequenceKeypoint.new(0.4, 0.15),
+	NumberSequenceKeypoint.new(1, 0.75),
 })
--- A caught fish's slot: nearly solid, a breath of see-through at the very top; its pattern faint and even
-local CAUGHT = NumberSequence.new({
-	NumberSequenceKeypoint.new(0, 0.12),
-	NumberSequenceKeypoint.new(0.35, 0),
-	NumberSequenceKeypoint.new(1, 0),
-})
-local CAUGHT_EVEN = NumberSequence.new(0) -- (the rainbow runs side to side)
-local PATTERN_CAUGHT = NumberSequence.new(0.45) -- on top of the pattern's own 0.8: about 11% strong
-local BRIGHTER = 0.14 -- how far a caught fish's rarity colours go toward white
--- A caught slot's highlight, as the reference's (measured off the user's screenshot, 2026-11-17: "the highlight
--- between the outline and the inner bit isnt placed correctly, and isnt thick enough and doesnt fade correctly"): a
--- light band right inside the black outline, 5% of a slot wide, along the top and down both sides but not the foot;
+local RING_HOVER = 0.45 -- how see-through the ring is on a slot under the mouse that isn't the chosen one
+local BRIGHTER = 0.14 -- how far a Legendary's, a Mythic's and a Secret's colours go toward white
+-- A fish's size and colour, in words down its slot's left side (nothing for a plain one of the normal size); the sizes
+-- in the fish tags' colours (UI.Tags, UI.TankPanel), cool to hot
+local TAG_SIZE = { Phone = 6.5, Keys = 8.5 }
+local SIZE_HUE: { [string]: Color3 } = {
+	Tiny = Color3.fromRGB(176, 206, 234),
+	Big = Color3.fromRGB(84, 226, 190),
+	Giant = Color3.fromRGB(110, 200, 255),
+	Huge = Color3.fromRGB(255, 160, 48),
+	Colossal = Color3.fromRGB(255, 96, 100),
+}
+-- A caught slot's highlight (the user, 2026-11-17: "the highlight between the outline and the inner bit isnt placed
+-- correctly, and isnt thick enough and doesnt fade correctly"): a light band right inside the black outline, 5% of a slot wide, along the top and down both sides but not the foot;
 -- nearly white along the top, fading down the sides to a faint tint at the bottom. The foot has a darker band instead
 local RIM = 2.3
 local RIM_TOP = 0.25 -- how see-through the white is along the top
@@ -166,15 +159,16 @@ local WINDOW = { Wide = 1.1, High = 1.16, Foot = 0.97 }
 Slots.Aspect = WINDOW.Wide / WINDOW.High
 local HOVER_INFO = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
--- The white ring on the chosen catch and on a caught slot under the mouse; the light rim and darker foot inside the
--- outline on the chosen catch only (the user, 2026-11-18: "the outer highlight band should only be on the chosen one")
+-- The white ring: solid on the chosen catch, fainter on another caught slot under the mouse
 local function showRings()
 	for i = 1, COUNT do
 		local key = bar[i]
-		local caught = key ~= nil
-		rings[i].Visible = caught and (key == selected or i == hovered)
-		rims[i].Visible = caught and key == selected
-		lips[i].Visible = caught and key == selected
+		local chosen = key ~= nil and key == selected
+		rings[i].Visible = chosen or (key ~= nil and i == hovered)
+		local line = rings[i]:FindFirstChildOfClass("UIStroke")
+		if line then
+			line.Transparency = if chosen then 0 else RING_HOVER
+		end
 	end
 end
 
@@ -205,7 +199,9 @@ type Tile = {
 	Panel: Kit.Panel,
 	Rim: Frame,
 	Lip: Frame,
-	Pattern: UIGradient?,
+	Pattern: ImageLabel,
+	Variant: TextLabel,
+	Size: TextLabel,
 	Ring: Frame,
 	Hit: TextButton,
 	Picture: Portrait.Portrait,
@@ -219,16 +215,22 @@ local function makeTile(x: number): Tile
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0, x, 1, -SIZE / 2),
 		Size = UDim2.fromOffset(SIZE, SIZE),
-	}, GLASS)
+	}, PLATE)
 	local look = slot.Look
-	look.Fill.Transparency = BODY
 	look.Outline.Color = BLACK
 	look.Outline.LineJoinMode = Enum.LineJoinMode.Miter -- (square corners: Kit's outlines are rounded)
-	Kit.new("UIGradient", { Transparency = EDGE, Rotation = 90 }, look.Outline)
-	local pattern: UIGradient? = nil
-	if look.Texture then
-		pattern = Kit.new("UIGradient", { Transparency = BODY, Rotation = 90 }, look.Texture)
-	end
+	Kit.new("UIGradient", { Rotation = 90 }, look.Outline) -- (a coloured fish's colour: tint)
+	local pattern: ImageLabel = Kit.new("ImageLabel", {
+		Name = "Studs",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Image = Kit.Textures.Emboss,
+		ImageTransparency = STUDS_EMPTY,
+		ScaleType = Enum.ScaleType.Tile,
+		TileSize = UDim2.fromScale(1 / STUDS, 1 / STUDS),
+		ZIndex = 0,
+	}, slot.Face)
+	Kit.new("UIGradient", { Transparency = STUDS_TAIL, Rotation = 90 }, pattern)
 	-- a caught fish's darker lip along the foot and its light rim inside the outline (shown when caught)
 	local lip = Kit.new("Frame", {
 		Name = "Lip",
@@ -291,17 +293,6 @@ local function makeTile(x: number): Tile
 		AutoButtonColor = false,
 		ZIndex = 5,
 	}, slot.Frame)
-	-- no pale line inside an empty slot (the user: "it also shouldnt be present if you dont have a fish"); a caught
-	-- one has the rim above instead
-	if look.Bevel then
-		look.Bevel.Enabled = false
-	end
-	Kit.new("UIGradient", { Transparency = BODY, Rotation = 90 }, slot.Shadow)
-	local under = slot.Shadow:FindFirstChildOfClass("UIStroke")
-	if under then
-		under.LineJoinMode = Enum.LineJoinMode.Miter
-		Kit.new("UIGradient", { Transparency = BODY, Rotation = 90 }, under)
-	end
 	local picture = Portrait.new(slot.Face, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.fromScale(0.5, WINDOW.Foot),
@@ -318,11 +309,24 @@ local function makeTile(x: number): Tile
 		Font = FONT,
 		ZIndex = 3,
 	}, slot.Face, NAME_LINE)
+	local function tag(which: string, row: number): TextLabel
+		return Kit.text({
+			Name = which,
+			Position = UDim2.new(0, 2, 0.24 + row * 0.2, 0),
+			Size = UDim2.new(1, -2, 0.2, 0),
+			TextSize = TAG_SIZE.Keys,
+			Font = FONT,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 3,
+		}, slot.Face, NAME_LINE)
+	end
 	return {
 		Panel = slot,
 		Rim = rim,
 		Lip = lip,
 		Pattern = pattern,
+		Variant = tag("VariantWord", 0),
+		Size = tag("SizeWord", 1),
 		Ring = ring,
 		Hit = hit,
 		Picture = picture,
@@ -332,7 +336,6 @@ local function makeTile(x: number): Tile
 	}
 end
 
--- A slot's look for a catch (its rarity's colours, its picture and its name cut short) or for none (the glass)
 -- (a coloured fish's slot: its outline and name in its colour, 2026-11-24: a Rainbow's looked as a plain one's)
 local function tint(slot: Kit.Panel, name: TextLabel, variant: string?)
 	local colours = Kit.variantFill(variant)
@@ -340,54 +343,54 @@ local function tint(slot: Kit.Panel, name: TextLabel, variant: string?)
 	local edge = slot.Look.Outline:FindFirstChildOfClass("UIGradient")
 	if edge then
 		edge.Color = colours or ColorSequence.new(Kit.White)
-		edge.Transparency = if colours then NumberSequence.new(0) else EDGE
 	end
 	local words = name:FindFirstChildOfClass("UIGradient") or Kit.new("UIGradient", { Rotation = 90 }, name)
 	words.Color = colours or ColorSequence.new(Kit.White)
 	words.Rotation = if variant == "Rainbow" then 0 else 90
 end
 
-local function paint(
-	slot: Kit.Panel,
-	rim: Frame,
-	lip: Frame,
-	pattern: UIGradient?,
-	picture: Portrait.Portrait,
-	name: TextLabel,
-	item: Caught?
-)
+-- A fish's colour and size in words (the first alone moves up into the only row)
+local function tags(t: any, item: Caught?)
+	local variant = item and Kit.variantFill(item.Variant)
+	local size = item and item.Size
+	local sized = size ~= nil and SIZE_HUE[size] ~= nil
+	local top: TextLabel, under: TextLabel = t.Variant, t.Size
+	top.Text = if item and variant then string.upper(item.Variant :: string) else ""
+	local words = top:FindFirstChildOfClass("UIGradient") or Kit.new("UIGradient", {}, top)
+	words.Color = variant or ColorSequence.new(Kit.White)
+	words.Rotation = if item and item.Variant == "Rainbow" then 0 else 90
+	under.Text = if sized then string.upper(size :: string) else ""
+	under.TextColor3 = if sized then SIZE_HUE[size :: string] else Kit.White
+	under.Position = UDim2.new(0, 2, if variant then 0.44 else 0.24, 0)
+end
+
+local function paint(t: any, item: Caught?)
+	local slot: Kit.Panel = t.Panel
+	local name: TextLabel = t.Name
 	local fill = slot.Look.Fill
 	if item then
 		local kind = Config.FishById[item.Id]
 		slot.Face.BackgroundTransparency = 0
-		local colours, turn = tileFill(item.Tier)
-		fill.Color, fill.Rotation = colours, turn
-		fill.Transparency = if turn == 90 then CAUGHT else CAUGHT_EVEN
-		if pattern then
-			pattern.Transparency = PATTERN_CAUGHT
-		end
-		lip.Visible = true
-		rim.Visible = true
+		fill.Color, fill.Rotation = tileFill(item.Tier)
+		t.Pattern.ImageTransparency = STUDS_CAUGHT
 		local words = if kind then kind.Name else item.Id
 		-- cut short with a full stop, never after a space ("Great White": "Great.", not "Great .")
 		name.Text = if #words > 7 then (string.gsub(string.sub(words, 1, 6), "%s+$", "")) .. "." else words
 		tint(slot, name, item.Variant)
-		picture.Frame.Visible = picture.show(item.Id)
+		t.Picture.Frame.Visible = t.Picture.show(item.Id)
 	else
-		slot.Face.BackgroundTransparency = GLASS.Fade or 0
-		fill.Color = ColorSequence.new(GLASS.Top, GLASS.Bottom)
+		slot.Face.BackgroundTransparency = PLATE.Fade or 0
+		fill.Color = ColorSequence.new(PLATE.Top, PLATE.Bottom)
 		fill.Rotation = 90
-		fill.Transparency = BODY
-		if pattern then
-			pattern.Transparency = BODY
-		end
-		lip.Visible = false
-		rim.Visible = false
+		t.Pattern.ImageTransparency = STUDS_EMPTY
 		name.Text = ""
 		tint(slot, name, nil)
-		picture.show(nil)
-		picture.Frame.Visible = false
+		t.Picture.show(nil)
+		t.Picture.Frame.Visible = false
 	end
+	t.Lip.Visible = item ~= nil
+	t.Rim.Visible = item ~= nil
+	tags(t, item)
 end
 
 local touchNow = false
@@ -416,7 +419,7 @@ local function drawRide()
 		return
 	end
 	local item = rideItem
-	paint(ride.Panel, ride.Rim, ride.Lip, ride.Pattern, ride.Picture, ride.Name, item)
+	paint(ride, item)
 	ride.Ring.Visible = item ~= nil and rideOn
 	ride.Cross.Visible = item ~= nil
 	ride.Cap.Root.Visible = not touchNow
@@ -475,15 +478,8 @@ function Slots.build(parent: Instance)
 			TextYAlignment = Enum.TextYAlignment.Top,
 			ZIndex = 4,
 		}, t.Panel.Face, NAME_LINE)
-		slots[i] = t.Panel
-		rims[i] = t.Rim
-		lips[i] = t.Lip
-		if t.Pattern then
-			patterns[i] = t.Pattern
-		end
+		tiles[i] = t
 		rings[i] = t.Ring
-		pictures[i] = t.Picture
-		names[i] = t.Name
 	end
 	-- the equipped slot, at the far left (task e3)
 	local t = makeTile(middleOf(0, SIZE, GAP))
@@ -552,6 +548,8 @@ function Slots.build(parent: Instance)
 		Rim = t.Rim,
 		Lip = t.Lip,
 		Pattern = t.Pattern,
+		Variant = t.Variant,
+		Size = t.Size,
 		Ring = t.Ring,
 		Cap = cap,
 		Cross = cross,
@@ -597,15 +595,21 @@ end
 
 function Slots.place(touch: boolean)
 	touchNow = touch
+	local function tagSize(t: any)
+		t.Variant.TextSize = if touch then TAG_SIZE.Phone else TAG_SIZE.Keys
+		t.Size.TextSize = t.Variant.TextSize
+	end
 	local size = if touch then SIZE else BIG
 	local gap = if touch then GAP else BIG_GAP
 	holder.Size = UDim2.fromOffset(rowWidth(size, gap), size + 18)
 	-- its bottom edge level with the stat rows' on a keyboard (StatRows.place)
 	holder.Position = UDim2.new(0.5, 0, 1, if touch then -10 else -14)
 	for i = 1, COUNT do
-		slots[i].Frame.Size = UDim2.fromOffset(size, size)
-		slots[i].Frame.Position = UDim2.new(0, middleOf(i, size, gap), 1, -size / 2)
-		names[i].TextSize = if touch then 8.5 else 11
+		local t = tiles[i]
+		t.Panel.Frame.Size = UDim2.fromOffset(size, size)
+		t.Panel.Frame.Position = UDim2.new(0, middleOf(i, size, gap), 1, -size / 2)
+		t.Name.TextSize = if touch then 8.5 else 11
+		tagSize(t)
 		keys[i].Visible = not touch
 		keys[i].TextSize = if touch then 9 else 11
 	end
@@ -614,6 +618,7 @@ function Slots.place(touch: boolean)
 		ride.Panel.Frame.Size = UDim2.fromOffset(size, size)
 		ride.Panel.Frame.Position = UDim2.new(0, middleOf(0, size, gap), 1, -size / 2)
 		ride.Name.TextSize = if touch then 8.5 else 11
+		tagSize(ride)
 		ride.Hint.Position = UDim2.fromOffset(middleOf(0, size, gap), HINT_FOOT)
 		ride.Hint.Size = UDim2.fromOffset(size + HINT_WIDE, 26)
 		ride.Hint.TextSize = if touch then 9 else 11
@@ -723,7 +728,7 @@ function Slots.update(list: { Caught }?)
 	drawRide()
 	for i = 1, COUNT do
 		local place = places[i]
-		paint(slots[i], rims[i], lips[i], patterns[i], pictures[i], names[i], if place then list[place] else nil)
+		paint(tiles[i], if place then list[place] else nil)
 	end
 	showRings()
 end
