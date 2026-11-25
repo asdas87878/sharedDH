@@ -516,4 +516,51 @@ do
 	noFaults("test")
 end
 
+print("a profile from before saddles, across servers")
+fresh()
+do
+	firstVisit("old")
+	local parts = roblox.kept("old")
+	local coins = parts.Tank.Coins
+	roblox.keep("old", "Index", {
+		Lands = { ["1"] = true, ["99"] = true },
+		Kinds = { RetiredFish = true },
+		Looks = { RetiredFish = { "OldSize|" } },
+	})
+	local s = roblox.server({})
+	local p = s.join("old")
+	for _, fish in s.Config.indexSet(1) do
+		s.putIn(p, fish.Id, false)
+	end
+	s.Index.look(p)
+	s.Index.ask(p, "ClaimLand", 1)
+	ok("an old claim cannot pay while its profile loads", s.coins(p) == 0 and p:GetAttribute("IndexPaid") == false)
+	roblox.pass(3)
+	ok("legacy profile loads with no worn saddle", p:GetAttribute("SavedIndex") and p:GetAttribute("Saddle") == 0)
+	s.Index.ask(p, "ClaimLand", 1)
+	ok("the restored land cannot pay again", s.coins(p) == coins)
+	roblox.pass(1)
+	s.Index.ask(p, "Saddle", 1)
+	ok("a legacy land claim already owns its saddle", p:GetAttribute("Saddle") == 1)
+	roblox.pass(1)
+	s.stop()
+	local saved = roblox.kept("old").Index
+	ok(
+		"claimed lands, retired looks and the worn land survive saving",
+		saved.Saddle == 1 and saved.Lands["99"] and saved.Kinds.RetiredFish and saved.Looks.RetiredFish[1] == "OldSize|"
+	)
+	s, p = back("old")
+	ok("another server restores the worn saddle", p:GetAttribute("Saddle") == 1 and s.coins(p) == coins)
+	s.Index.ask(p, "Saddle", 0)
+	roblox.pass(1)
+	s.stop()
+	s, p = back("old")
+	ok(
+		"taking it off persists and keeps ownership",
+		p:GetAttribute("Saddle") == 0 and roblox.kept("old").Index.Lands["1"]
+	)
+	s.stop()
+	noFaults("legacy Index")
+end
+
 done()

@@ -361,6 +361,12 @@ function Servers.new(placePath: string)
 		local slow = opts.RideLate or 0
 		local joinedAt: { [any]: number } = {}
 		world.stubs[SERVICES .. "RideService"] = {
+			stateOf = function(player: any)
+				return player:GetAttribute("State")
+			end,
+			train = function()
+				return true
+			end,
 			trainedOxygen = function(player: any)
 				-- (RideService can have a player later than the tank has)
 				return if joinedAt[player] and roblox.clock - joinedAt[player] >= slow then 0 else nil

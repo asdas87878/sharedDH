@@ -165,7 +165,7 @@ function Fake.__newindex(self: any, key: string, value: any)
 		return
 	end
 	local real = rawget(self, "_real")
-	if isFake(value) or LIVE[key] ~= nil then
+	if isFake(value) or LIVE[key] ~= nil or (value == nil and isFake(rawget(self, "_own")[key])) then
 		rawget(self, "_own")[key] = value
 	else
 		local ok, err = pcall(function()
