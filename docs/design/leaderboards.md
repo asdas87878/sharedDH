@@ -75,7 +75,7 @@ player never overwrites their own number with a fresh one.
   Sixteen rules broken on purpose, one at a time: each made this or the next one fail.
 - `panel_test.luau /tmp/p.rbxl [dump folder]`: the list as drawn, and that row and foot read the same (67).
 - `place_test.luau /tmp/p.rbxl <saved place>`: every part of every style against the hub (11). `slim.luau` leaves out
-  the properties it does not need, so it takes 0.7 GB and not several.
+  the properties it does not need, so it takes about 0.85 GB; it says nothing and ends with 137 if the PC kills it (under about 1.8 GB free).
 - The picture: `panel_test` with a folder, `picture.py <folder> panels`, `view.py` in Blender, `picture.py <folder> sheet <png>`.
 
 ## Not done, not sure

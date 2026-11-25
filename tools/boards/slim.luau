@@ -1,5 +1,5 @@
 -- A saved place made small before Lune unpacks it (NULLROOM task l1): the hub's place holds 174,000 things, and unpacked
--- with every property it takes several GB. A .rbxl is a list of chunks, one for each property of each class; those that
+-- with every property it takes far more memory than these few do (place_test: 0.85 GB). A .rbxl is a list of chunks, one for each property of each class; those that
 -- are not asked for are left out, so what is left has its tree, its names and those properties alone.
 -- usage: roblox.deserializePlace(slim(fs.readFile(path), { "Name", "CFrame", "Size" }))
 local serde = require("@lune/serde")
