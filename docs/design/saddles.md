@@ -2,7 +2,8 @@
 
 Hugo: "also add saddles as a reward in index, ... and give me a sheet of saddles for all the lands, make sure they
 actually work on fishes." Task s1 made the designs and the proof that they fit (from "The ten" on); task s2 built
-them into the game (the next section). **Nothing has been seen in Studio.**
+them into the game (the next section). **Nothing has been seen in Studio.** Hugo said yes to the ten redrawn saddles on
+2026-11-25 ("saddles are good"); they are in the game's data since the same evening (d1, branch `saddles-merge`).
 
 - **The ten, land 1 to land 10** (Hugo's picks, redrawn): `docs/attachments/saddles-ladder-1.png`
 - **The fit** (the picked one on 12 very different bodies): `docs/attachments/saddles-fit-1.png`
@@ -11,6 +12,49 @@ them into the game (the next section). **Nothing has been seen in Studio.**
 ![the ten](../attachments/saddles-ladder-1.png)
 
 ![the fit](../attachments/saddles-fit-1.png)
+
+## Merged and waiting for Studio (2026-11-25, NULLROOM d1; branch `saddles-merge`)
+
+`saddles-2` merged onto `merge-finished-2026-11-25` (the second merge's base); not on main, nothing uploaded, Studio not touched.
+
+- **Conflicts:** `IndexWindow` (the CLAIM ALL arrow and the saddles page both painted), `IndexService` (the attributes
+  `IndexPaid` and `Saddle` both set), `Net` and the game-code skill (both sides' lines). `IndexPanel` and `IndexBook` merged by
+  themselves. The partner's Index rules stay: the arrow until the first claim only, no callout, no Index Oxygen, no goal line for claims.
+- **The ten are in:** `Shared/Saddles/Fits` and `Designs` written again by `to_luau.py`, `Config.Saddles.Land` = 1A 2B 3B 4B 5A 6B 7B 8B 9B 10B.
+  `Spare` is 360 (was 240): at 240 a hop with land 10's saddle (up to 258 parts on at once in the test) made about 30 new parts every
+  hop, at 300 and up none after the first. `PartsAFrame` stays 24, so the biggest saddle (165 parts) takes 7 frames.
+- **Nothing the fits were measured on changed** on either base (creatures, sizes, seat height): the numbers below still hold.
+- **Checked offline:** saddles 101; parity 9,380 saddles and 726,580 parts, 0 wrong; Index 73, 190 and 95 (old look); ring 128; fusing 164 and 97;
+  offline 123 and 67; auras 61; texts 33: none failed. StyLua, selene (0 errors, the 3 old warnings), a Rojo build, no type
+  error in a saddle or Index file. `full_check.py` has no offline part (every step asks Studio): **not run**.
+  **Not run:** the ring test against the saved place (this PC ran out of memory; the same without the saddles), the checks in Studio.
+- **With main** (`f3a42c5`, hop and texts): only notes conflict (the skill, Handoff, Sessions, `ui.md`), no code; the same checks pass on the two together.
+
+### What only Studio can prove
+
+1. The ten look right on live fish: one ride each on a small fish, an eel, a ray, a turtle and a Colossal whale, and that the rider
+   sits in the same place with the saddle on and off.
+2. A hop from fish to fish: no hitch and no blink, at 60 fps and on a phone (30 fps). On land 10's 165 parts too: if pieces
+   are still popping in as you land, raise `PartsAFrame` (24) to 40.
+3. A fail and an eat: the saddle goes with the fish and goes when it goes.
+4. The ride fish on land, a tank fish ridden in the pen, riding out through the gate, and the sub's fish.
+5. **New since the saddles were built:** the mid-air hop onto the sub (main, `Config.Sub.AirHop`): the rider leaves the leaping fish in the air;
+   the saddle must go when they leave it, and not be left on the fish or in the air.
+6. A second player's saddle on their fish, and a saddle put on, changed and taken off while they ride.
+7. The Index: the pictures' light (ViewportFrames), the arrow at CLAIM ALL with the Saddles button there (phone held upright too), the toast
+   over the Saddles page, the claim of a whole land giving its saddle, a rejoin starting with none.
+8. Six riders with saddles at once: frame time, and that no part is left behind when they leave.
+
+### Questions for Hugo (each with what we do if you say nothing)
+
+| Question | What you see today | If you say nothing (recommended) |
+|---|---|---|
+| **Tank seat** | A rider on a fish in the tank floats: up to 2.8 studs over a Colossal, 0.42 too low on a Tiny. On 34 of 468 fish and sizes the rider also follows the wrong part of the fish. The saddle itself sits on the back. | **Fix it, as a small change of its own after this merge** (one line in `AquariumService`, then a check of the tank ride). It moves the seat, so it waits for your yes; the merge doesn't. |
+| **Dunkleosteus** | Its seat is at the edge of its head plate, which stands 0.76 (Tiny) to 3.24 (Colossal) studs over it: the rider is partly sunk in the plate, with a saddle or without. | **Leave the seat.** The pad starts behind the plate. Look at it in Studio at Big and Colossal; if it looks bad, move the seat back behind the plate. |
+| **Void Whale** | Its back ridge comes up to 0.9 studs into the rider (big sizes). | **Leave the seat.** The pad is split beside the ridge. Worst of these three, so look at it first, at Huge. |
+| **Lantern Leviathan** | Its ridge comes up to 0.58 studs into the rider (big sizes). | **Leave the seat**, same split pad. |
+| **Moray Eel** | Its ridge comes up to 0.45 studs into the rider (big sizes). | **Leave the seat**, same split pad. |
+| **Seahorse** | The rider hovers 0.46 (Huge) and 0.59 (Colossal) studs over its back. | **Leave the seat**: the pad is a thick block that fills the gap. |
 
 ## In the game (2026-11-25, NULLROOM task s2; branch `saddles`, with `index-look` merged into it)
 
@@ -27,7 +71,7 @@ them into the game (the next section). **Nothing has been seen in Studio.**
   fish is granted, shown as the rider lands, off as they leave. They hang on the fish's own part (`Fits`' joint) at its
   back, so they go with its swimming, angry mode and the fails; size and variant change nothing. A faded or hidden fish
   hides its saddle. They are in `workspace.Saddles`, not in the fish: no weight, no touch, no hits, no shadow. Parts are
-  kept for the next one (`Spare`); six riders at once are 286 parts.
+  kept for the next one (`Spare`); six riders at once are 536 parts (lands 1 to 6's).
 - **In the Index** (today's window only, `Config.Index.Look` 1): the land's banner shows the saddle's picture and name with a
   padlock, OWNED or WORN; a press on it, or the **Saddles** button beside the Unlocked bar, opens the Saddles page: WEAR, TAKE OFF,
   CLAIM! (the set is whole), or how far the set is (a press goes to that land). `UI/SaddlePage` with `UI/SaddlePicture`
@@ -43,16 +87,14 @@ them into the game (the next section). **Nothing has been seen in Studio.**
 - **Not changed:** the seat, the rider, the hit boxes. On big tank fish the rider still hovers over the saddle until the seat
   fix below gets its yes (the saddle is on the back either way). All 78 kinds have a fit; block stand-ins and the trainer's
   seahorse have none and show no saddle.
-- **Checked offline:** `tools/saddles/saddle_parity.luau` (every kind, size and design: 9,380 saddles, 449,443 parts, the same as
-  the Python's that the proof below is about), `saddle_test.luau` (99: the rules, leaving and coming back, where it sits, when it shows,
+- **Checked offline:** `tools/saddles/saddle_parity.luau` (every kind, size and design: 9,380 saddles, 726,580 parts, the same as
+  the Python's that the proof below is about), `saddle_test.luau` (101: the rules, leaving and coming back, where it sits, when it shows,
   pooling), `tools/index/panel_test.luau` (the window against the real server, sizes on four phones), `tools/saddles/index_sheet.py` (the picture).
 - **To see in Studio:** a ride each on a small fish, an eel, a ray, a turtle and a Colossal whale; a hop fish to fish (no hitch, no blink); a fail
   and an eat; the ride fish on land and in the tank; the submarine hop; a second player's saddle; the pictures' light
   in the Index (ViewportFrames); that the rider sits where they did without it.
-- **Not in the game yet: the redrawn ten.** The game still has the first round's drawings and the recommended ten. To do: `to_luau.py`, then
-  `Config.Saddles.Land` = 1A 2B 3B 4B 5A 6B 7B 8B 9B 10B, and a look at `PartsAFrame` and `Spare` (a saddle is now up to 165 parts, it was 59).
 
-## The ten (picked 2026-11-25, redrawn the same day; the redraw waits for Hugo's eye)
+## The ten (picked 2026-11-25, redrawn the same day; Hugo's yes the same evening)
 
 Hugo: "1a 2b 3b 4b 5a(make a little better and especially more cohesive) 6b 7b 8b 9b 10b, make all of them better and make
 sure theres an actual "coolness" progression in these saddles, nerf start slightly and make them cooler towards end, add detail".

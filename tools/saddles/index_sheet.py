@@ -26,7 +26,7 @@ import sheet as SH  # noqa: E402
 
 OUT = ROOT / "docs/attachments/saddles-index.png"
 WORK = Path(D.WORK)
-WORN = "2A"
+WORN = "2B"
 # kind, size, what to say, from where
 FISH = [("Clownfish", "Tiny", "smallest fish", None), ("SeaTurtle", "Big", "shell", None), ("MantaRay", "Normal", "ray", None),
         ("MorayEel", "Giant", "eel", None), ("Octopus", "Normal", "octopus", None), ("BlueWhale", "Colossal", "biggest fish", None)]
@@ -49,15 +49,15 @@ class Page(LP.Page):
 def alone():
     """each design by itself, seen as UI.SaddlePicture sees it, cut to its edges"""
     scenes, shots = {}, []
-    for key in S.DESIGNS:
+    for key in S.PICKS:
         scenes["u" + key] = {"fish": [], "parts": D.place(S.build(S.design(key), S.plain()), (0, 0, 0))}
-        eye = np.array([5.2, 4.6, 8.2]) / np.linalg.norm([5.2, 4.6, 8.2]) * 15
-        shots.append(D.shot("u" + key, "u_" + key, eye + [0, 0.5, 0], (0, 0.5, 0), 640, 640, fov=30))
+        eye = np.array([5.2, 4.6, 8.2]) / np.linalg.norm([5.2, 4.6, 8.2]) * 26
+        shots.append(D.shot("u" + key, "u_" + key, eye + [0, 1.5, 0], (0, 1.5, 0), 960, 960, fov=30))
     D.render(scenes, shots, "uis")
-    for key in S.DESIGNS:
+    for key in S.PICKS:
         im = Image.open(WORK / f"u_{key}.png")
         box = im.getchannel("A").point(lambda a: 255 * (a > 8)).getbbox()
-        assert box[0] > 0 and box[1] > 0 and box[2] < 640 and box[3] < 640, key
+        assert box[0] > 0 and box[1] > 0 and box[2] < 960 and box[3] < 960, key
         im.crop(box).save(WORK / f"ui_{key}.png")
 
 
@@ -105,7 +105,7 @@ def main():
                 f'<div style="font:600 17px DejaVu Sans;color:#dfe8fa;margin-top:6px">{f.name}, {tier} ({note})</div></div>')
 
     html = f"""<div style="width:2300px;padding:24px;display:flex;flex-direction:column;gap:26px">
-{tag("Saddles in the Index: claim a whole land, wear its saddle on every fish you ride. Drawn offline from our own code; the ten designs are placeholders until picked", 23)}
+{tag("Saddles in the Index: claim a whole land, wear its saddle on every fish you ride. Drawn offline from our own code", 23)}
 <div style="display:flex;gap:26px">{block("1. The land's reward, on its banner: here the Reef, claimed, its saddle worn. A press on it opens the Saddles page", small("look_saddle_pc_worn", 1440))}
 <div style="display:flex;flex-direction:column;gap:26px">
 {block("2. Not claimed yet: locked, with what it is", small("look_saddle_pc_locked", 800))}
@@ -117,7 +117,7 @@ def main():
 <div style="display:flex;gap:26px">
 {block("7. Phone upright, 375 x 812", phone("look_saddle_tall_locked", 1.2))}
 {block("8. Its Saddles page", phone("look_saddle_tall_page", 1.2))}
-<div style="width:1250px">{tag("9. One worn saddle (2A) on six very different fish, whole fish in the corner")}
+<div style="width:1250px">{tag(f"9. One worn saddle ({WORN}) on six very different fish, whole fish in the corner")}
 <div style="display:flex;flex-wrap:wrap;gap:20px 26px">{"".join(fish(*x[:3]) for x in FISH)}</div></div></div></div>"""
     wide, high = 2348, 4200
     s.shoot(html, OUT, wide, high)

@@ -825,7 +825,7 @@ if new then
 	ok(
 		"the banner has the land's saddle, its picture and name",
 		saddle().Visible
-			and saddle():FindFirstChild("SaddleName").Text == "Giant Clam"
+			and saddle():FindFirstChild("SaddleName").Text == "Scallop"
 			and shownKey(saddle()) == Config.Saddles.Land[1],
 		tostring(shownKey(saddle()))
 	)
@@ -846,7 +846,7 @@ if new then
 	ok("one kind short: no claim", not claimLand.Active)
 	landSet(1)
 	press(claimLand)
-	ok("the claim names the saddle", string.find(toastText(), "Giant Clam Saddle", 1, true) ~= nil, toastText())
+	ok("the claim names the saddle", string.find(toastText(), "Scallop Saddle", 1, true) ~= nil, toastText())
 	ok("OWNED on the banner, the padlock gone", plateState() == "OWNED" and not saddle():FindFirstChild("Lock").Visible)
 	ok("not put on by itself", worn() == 0)
 	ok("the Saddles page is closed until a press", not page() or not page().Visible)

@@ -25,6 +25,10 @@ local Designs = world.require(world.find("ReplicatedStorage.Shared.Saddles.Desig
 
 local SIZES = { "Tiny", "Normal", "Big", "Giant", "Huge", "Colossal" }
 local lands = Config.indexLands()
+-- (Hugo's picks, 2026-11-25)
+local PICKS = { "1A", "2B", "3B", "4B", "5A", "6B", "7B", "8B", "9B", "10B" }
+local FIRST = PICKS[1]
+ok("the ten are Hugo's picks", table.concat(Config.Saddles.Land, " ") == table.concat(PICKS, " "))
 ok("a design for each of the ten lands", #Config.Saddles.Land == lands and lands == 10)
 for land, key in Config.Saddles.Land do
 	local design = Saddles.design(key)
@@ -34,7 +38,7 @@ ok("a key that is no design gives none", Saddles.design("11A") == nil and Saddle
 Config.Saddles.On = 0
 ok("switched off, no land gives one", Saddles.ofLand(1) == nil and Saddles.nameOf(1) == "")
 Config.Saddles.On = 1
-ok("switched on, it has a name", Saddles.nameOf(1) == "Giant Clam Saddle", Saddles.nameOf(1))
+ok("switched on, it has a name", Saddles.nameOf(1) == "Scallop Saddle", Saddles.nameOf(1))
 
 local kinds, none, badJoint, most, least, far = 0, {}, {}, 0, math.huge, 0
 for _, fish in Config.Fish do
@@ -80,7 +84,7 @@ ok(
 ok("78 kinds, six sizes each", kinds == 78, kinds)
 ok("every fit's joint is one of its creature's parts", #badJoint == 0, table.concat(badJoint, ", "))
 ok("no saddle is bigger than a dozen studs from its seat", far < 12, far)
-ok("a list is made once and kept", Saddles.build("Clownfish", "Big", "1B") == Saddles.build("Clownfish", "Big", "1B"))
+ok("a list is made once and kept", Saddles.build("Clownfish", "Big", FIRST) == Saddles.build("Clownfish", "Big", FIRST))
 ok("a kind with no fit has none", Saddles.build("NoSuchFish", "Big", "1B") == nil)
 local strays = {}
 for kind, text in Data.Adjust do
@@ -216,7 +220,7 @@ Config.Saddles.Land[1] = ""
 ask("Saddle", 2)
 ask("Saddle", 1)
 ok("a land whose entry is empty gives none to wear", worn() == 2)
-Config.Saddles.Land[1] = "1A"
+Config.Saddles.Land[1] = "1B"
 ask("Saddle", 1)
 ok("another design in a land's entry is worn by the same owners", worn() == 1)
 Config.Saddles.Land[1] = was
@@ -399,7 +403,7 @@ ok("a free fish has none", Controller.on(clown) == nil and count() == 0)
 clown:SetAttribute("Reserved", 7)
 frame()
 local key, made, of, see = Controller.on(clown)
-ok("promised to us, it is begun, hidden", key == "1B" and see == 1 and made > 0)
+ok("promised to us, it is begun, hidden", key == FIRST and see == 1 and made > 0)
 ok(`never more than {Config.Saddles.PartsAFrame} parts a frame`, made <= Config.Saddles.PartsAFrame, made)
 settle()
 key, made, of, see = Controller.on(clown)
@@ -411,8 +415,8 @@ end
 ok("every part of it", hidden)
 ok(
 	"each part stands where the fit says, on the back",
-	off(back, "Clownfish", "Big", "1B") < 1e-3,
-	off(back, "Clownfish", "Big", "1B")
+	off(back, "Clownfish", "Big", FIRST) < 1e-3,
+	off(back, "Clownfish", "Big", FIRST)
 )
 local safe = true
 for _, part in folder:GetChildren() do
@@ -452,19 +456,19 @@ ok("and back", select(4, Controller.on(clown)) == 0)
 clown:SetAttribute("Failing", true)
 clown:SetAttribute("Angry", true)
 frame(0.3)
-ok("it stays on through angry mode and a fail", Controller.on(clown) == "1B")
+ok("it stays on through angry mode and a fail", Controller.on(clown) == FIRST)
 
 player:SetAttribute("Saddle", 2)
 settle()
 ok(
 	"changed while riding: the new one is on",
-	Controller.on(clown) == "2A" and off(back, "Clownfish", "Big", "2A") < 1e-3
+	Controller.on(clown) == PICKS[2] and off(back, "Clownfish", "Big", PICKS[2]) < 1e-3
 )
 player:SetAttribute("Saddle", 0)
 ok("taken off while riding: gone at once", Controller.on(clown) == nil and count() == 0)
 player:SetAttribute("Saddle", 1)
 settle()
-ok("put on while riding: on", Controller.on(clown) == "1B" and select(4, Controller.on(clown)) == 0)
+ok("put on while riding: on", Controller.on(clown) == FIRST and select(4, Controller.on(clown)) == 0)
 clown:SetAttribute("Rider", 0)
 ok("left: gone at once", Controller.on(clown) == nil and count() == 0)
 
@@ -476,7 +480,7 @@ shark:SetAttribute("Reserved", 7)
 settle()
 ok(
 	"a hop: the next one's is made while this one's is on",
-	Controller.on(clown) == "1B" and select(2, Controller.on(shark)) == select(3, Controller.on(shark))
+	Controller.on(clown) == FIRST and select(2, Controller.on(shark)) == select(3, Controller.on(shark))
 )
 clown:SetAttribute("Rider", 0)
 shark:SetAttribute("Rider", 7)
@@ -486,7 +490,7 @@ ok(
 	"and off the one left, shown on the one landed on",
 	Controller.on(clown) == nil and select(4, Controller.on(shark)) == 0
 )
-ok("it sits on the shark", off(sharkBack, "ReefShark", "Normal", "1B") < 1e-3)
+ok("it sits on the shark", off(sharkBack, "ReefShark", "Normal", FIRST) < 1e-3)
 clown:SetAttribute("Reserved", 7)
 settle()
 clown:SetAttribute("Reserved", 0)
@@ -498,7 +502,7 @@ other:SetAttribute("Saddle", 7)
 settle()
 ok(
 	"another player's shows too, as they put it on",
-	Controller.on(clown) == "7A" and select(4, Controller.on(clown)) == 0
+	Controller.on(clown) == PICKS[7] and select(4, Controller.on(clown)) == 0
 )
 other:SetAttribute("Saddle", 99)
 frame()
@@ -513,7 +517,7 @@ ok("a fish that goes takes none of the parts along", Controller.on(clown) == nil
 for _, held in folder:GetChildren() do
 	assert(held:FindFirstChildOfClass("Weld").Part0:IsDescendantOf(shark))
 end
-ok("and leaves the others'", Controller.on(shark) == "1B")
+ok("and leaves the others'", Controller.on(shark) == FIRST)
 local joint = folder:GetChildren()[1]:FindFirstChildOfClass("Weld").Part0
 local jointParent = joint.Parent
 joint.Parent = nil
@@ -522,10 +526,10 @@ ok("its part streamed out: off, so nothing falls", Controller.on(shark) == nil a
 joint.Parent = jointParent
 frame(0.3)
 settle()
-ok("streamed back: on again", Controller.on(shark) == "1B")
+ok("streamed back: on again", Controller.on(shark) == FIRST)
 gui.camera.CFrame = CFrame.new(60, -30, 10 + Config.Saddles.Far * 1.1)
 frame(0.3)
-ok("a little past the edge it stays", Controller.on(shark) == "1B")
+ok("a little past the edge it stays", Controller.on(shark) == FIRST)
 gui.camera.CFrame = CFrame.new(60, -30, 10 + Config.Saddles.Far * 1.3)
 frame(0.3)
 ok("far away it is off", Controller.on(shark) == nil)
@@ -535,7 +539,7 @@ ok("and not on again till it is near", Controller.on(shark) == nil)
 gui.camera.CFrame = CFrame.new(0, 0, 0)
 frame(0.3)
 settle()
-ok("near: on", Controller.on(shark) == "1B")
+ok("near: on", Controller.on(shark) == FIRST)
 Config.Saddles.On = 0
 frame(0.3)
 ok("switched off: off", Controller.on(shark) == nil and count() == 0)
@@ -553,7 +557,7 @@ land.ChildAdded:Fire(turtle)
 settle()
 ok(
 	"the ride fish on land wears it",
-	Controller.on(turtle) == "1B" and off(turtleBack, "SeaTurtle", "Colossal", "1B") < 1e-3
+	Controller.on(turtle) == FIRST and off(turtleBack, "SeaTurtle", "Colossal", FIRST) < 1e-3
 )
 gone(turtle)
 ok("and not once it is put away", Controller.on(turtle) == nil and count() == 0)
@@ -569,7 +573,7 @@ manta:SetAttribute("TankRider", 7)
 settle()
 ok(
 	"ridden in the tank, it is on its back",
-	Controller.on(manta) == "1B" and off(mantaBack, "MantaRay", "Colossal", "1B") < 1e-3
+	Controller.on(manta) == FIRST and off(mantaBack, "MantaRay", "Colossal", FIRST) < 1e-3
 )
 gone(manta)
 
@@ -585,7 +589,7 @@ eel:SetAttribute("Rider", 7)
 settle()
 ok(
 	"put on in the middle of a swing, it is on the same spot of the fish",
-	off(eelBack, "MorayEel", "Giant", "1B") < 1e-3
+	off(eelBack, "MorayEel", "Giant", FIRST) < 1e-3
 )
 gone(eel)
 local block = fishOf("Clownfish", "Normal", CFrame.new(0, -20, 0))
@@ -614,6 +618,34 @@ for i = 1, 40 do
 end
 ok(`forty rides make no more than {Config.Saddles.Spare} parts`, total <= Config.Saddles.Spare, total)
 print(`        {total} parts in all`)
+-- (the same with the biggest one, the last land's: what is kept must not grow, and a hop has two of them at once)
+local wornBefore = player:GetAttribute("Saddle")
+player:SetAttribute("Saddle", #PICKS)
+local big, biggest = {} :: { [any]: boolean }, 0
+for i = 1, 40 do
+	local from = spawnWild("Clownfish", "Normal", CFrame.new(0, -20, i))
+	from:SetAttribute("Rider", 7)
+	settle()
+	local to = spawnWild("ReefShark", "Normal", CFrame.new(4, -20, i))
+	to:SetAttribute("Reserved", 7)
+	settle()
+	local now = 0
+	for _, part in folder:GetChildren() do
+		now += 1
+		big[part] = true
+	end
+	biggest = math.max(biggest, now)
+	gone(from)
+	to:SetAttribute("Reserved", nil)
+	gone(to)
+end
+local made40 = 0
+for _ in big do
+	made40 += 1
+end
+print(`        land 10's: {biggest} parts at once in a hop, {made40} parts made in forty hops`)
+ok("forty hops with it: not one saddle's worth made anew each time", made40 < 40 * biggest / 4, made40)
+player:SetAttribute("Saddle", wornBefore)
 local crowd = {}
 for i = 1, 6 do
 	ids[10 + i] = gui.make("Player")
