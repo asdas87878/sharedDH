@@ -856,6 +856,11 @@ function SubTrip.encode(trip: Trip): string
 				air.Fall,
 				if air.Over then 1 else 0,
 				air.Back,
+				air.Eye.Back,
+				air.Eye.Pass,
+				air.Eye.Cap,
+				air.Eye.Gate,
+				air.Eye.Line,
 				table.unpack(air.Leap.Tilts),
 			}
 			else nil,
@@ -957,7 +962,7 @@ function SubTrip.decode(json: string): Trip?
 		}
 	end
 	local a = data.A
-	if type(a) == "table" and #a >= 25 and trip.Escort and #points >= 4 then
+	if type(a) == "table" and #a >= 30 and trip.Escort and #points >= 4 then
 		local air: SubAir.Air = {
 			Leap = {
 				Take = Vector3.new(a[1], a[2], a[3]),
@@ -967,7 +972,7 @@ function SubTrip.decode(json: string): Trip?
 				Fall = a[8],
 				Crouch = a[9],
 				Time = a[10],
-				Tilts = table.move(a, 24, #a, 1, {}),
+				Tilts = table.move(a, 29, #a, 1, {}),
 			},
 			Half = trip.Escort.Half,
 			Saddle = trip.Escort.Saddle,
@@ -983,6 +988,7 @@ function SubTrip.decode(json: string): Trip?
 			Way = (points[3] - points[2]).Unit,
 			Over = a[22] == 1,
 			Back = a[23],
+			Eye = { Back = a[24], Pass = a[25], Cap = a[26], Gate = a[27], Line = a[28] },
 		}
 		trip.Air = air
 	end

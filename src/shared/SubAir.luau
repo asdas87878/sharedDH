@@ -41,6 +41,16 @@ export type Air = {
 	Way: Vector3, -- this way
 	Over: boolean, -- it came in over the gate's arch (else under the beam)
 	Back: number, -- the fish begins its sweeps this long after the leap began
+	Eye: Eye,
+}
+
+-- The camera of the flight (SubAir.eye), chosen with the plan
+export type Eye = {
+	Back: number, -- this far behind the rider until they are on the sub
+	Pass: number, -- the sub's tail is over it by then: it may rise
+	Cap: number, -- until then it is under this height at the meeting place, and the way the sub came in up from there
+	Gate: number, -- 1: under the gate's beam while it is behind it, -1: over the arch, 0: wherever
+	Line: number, -- the gate's outer side, along the way out
 }
 
 local SubAir = {}
@@ -271,6 +281,49 @@ function SubAir.rider(air: Air, t: number): CFrame
 end
 
 ----------------------------------------------------------------------------------------------------------------------
+-- The camera: behind, on the middle line of what it follows (the rider, then the sub), looking down the lane
+
+-- Never up in the water's surface layers once it is under them (SubController's own ceiling for the run)
+local function ceiling(): number
+	return Config.Oxygen.SurfaceY - 7
+end
+
+-- Where it is at `t` and what it looks at, from the trip alone (from the run on: SubController's)
+-- (`riderAt`, `subAt`: the rider and the sub then, if already worked out)
+function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Vector3, Vector3)
+	local c = Config.Sub
+	local e = air.Eye
+	local out, side = air.Out, across(air)
+	local rider = riderAt or SubAir.rider(air, t).Position
+	local sub = subAt or SubAir.sub(air, math.min(t, air.RideAt))
+	local at = sub.Position
+	-- along: behind the rider, drawing in behind the sub by its splash
+	local k = Ease.smoothstep(air.HopAt, air.SplashAt, t)
+	local along = Ease.lerp(rider:Dot(out) - e.Back, at:Dot(out) - c.AirCamSub, k)
+	-- up: over the rider, but under the sub until it has gone by overhead; then over the sub
+	local cap = e.Cap + (air.Meet:Dot(out) - along) * math.tan(air.Slope)
+	local low = math.min(rider.Y + c.AirCamUp, cap)
+	local down = math.max(-sub.LookVector.Y, 0)
+	local high = at.Y + c.AirCamSubUp + c.AirCamSub * down * 0.55
+	local y = Ease.lerp(low, high, Ease.smoothstep(e.Pass, e.Pass + c.AirCamRise, t))
+	-- (clear of the gate's arch, from the gate back)
+	local dip = math.max(along - e.Line, 0)
+	if e.Gate > 0 then
+		y = math.min(y, c.AirBeam[2] - c.AirCamClear + dip * 1.5)
+	elseif e.Gate < 0 then
+		y = math.max(y, c.AirCrest[3] + c.AirCamClear - dip * 1.5)
+	end
+	-- (and through the surface after the sub)
+	y = Ease.lerp(y, math.min(y, ceiling() - 0.5), Ease.smoothstep(air.SplashAt, air.RideAt, t))
+	local over = rider:Dot(side) + (at - rider):Dot(side) * Ease.smoothstep(air.SeatAt, air.RideAt, t)
+	local eye = out * along + side * over + UP * y
+	local look = (rider + UP + out * 8):Lerp(at + sub.LookVector * 25, Ease.smoothstep(air.SeatAt, air.RideAt, t))
+	-- (straight down the lane: its turn is up and down alone)
+	look += side * (over - look:Dot(side))
+	return eye, look
+end
+
+----------------------------------------------------------------------------------------------------------------------
 -- The plan (the server)
 
 -- Do two boxes meet? (half sizes; by their six faces and nine edges, in numbers: it runs some hundreds of times a plan)
@@ -325,6 +378,37 @@ local function hullBox(hull: { number }, gap: number): (CFrame, Vector3)
 		Vector3.new(wide, (up + down) / 2 + gap, (nose + tail) / 2 + gap)
 end
 
+-- Is `p` within `room` of the box (half size `half`)?
+local function inside(cf: CFrame, half: Vector3, p: Vector3, room: number): boolean
+	local o = cf:PointToObjectSpace(p)
+	return math.abs(o.X) < half.X + room and math.abs(o.Y) < half.Y + room and math.abs(o.Z) < half.Z + room
+end
+
+-- Does the line from `a` to `b` meet the box?
+local function crosses(cf: CFrame, half: Vector3, a: Vector3, b: Vector3): boolean
+	local p, d = cf:PointToObjectSpace(a), cf:VectorToObjectSpace(b - a)
+	local near, far = 0, 1
+	for _, axis in { { p.X, d.X, half.X }, { p.Y, d.Y, half.Y }, { p.Z, d.Z, half.Z } } do
+		local at, go, h = axis[1], axis[2], axis[3]
+		if math.abs(go) < 1e-6 then
+			if math.abs(at) > h then
+				return false
+			end
+		else
+			local t0, t1 = (-h - at) / go, (h - at) / go
+			near = math.max(near, math.min(t0, t1))
+			far = math.min(far, math.max(t0, t1))
+		end
+	end
+	return near < far
+end
+
+-- The gate's boxes against the lip, as the camera sees them (solid, no room)
+local function gateBox(lip: CFrame, box: { number }): (CFrame, Vector3)
+	return lip * CFrame.new(0, (box[2] + box[3]) / 2 - lip.Y, -(box[4] + box[5]) / 2),
+		Vector3.new(box[1], (box[3] - box[2]) / 2, (box[5] - box[4]) / 2)
+end
+
 -- The plan, from the leap (nil: it can't be done). `hull`: SubTrip.Hulls' row; `lip`: the lip's middle, looking out;
 -- `low`, `high`: how far to the left and the right of the lip's middle the sub may be. The run's start is filled in after
 -- (SubAir.aim): it depends on the lane
@@ -362,14 +446,11 @@ function SubAir.plan(leap: Leap, half: Vector3, saddle: Vector3, hull: { number 
 		Way = out,
 		Over = false,
 		Back = 0,
+		Eye = { Back = c.AirCam, Pass = seatAt, Cap = 1e4, Gate = 0, Line = 0 },
 	}
 	local centre, size = hullBox(hull, c.AirGap)
-	local function gate(box: { number }): (CFrame, Vector3)
-		return lip * CFrame.new(0, (box[2] + box[3]) / 2 - lip.Y, -(box[4] + box[5]) / 2),
-			Vector3.new(box[1], (box[3] - box[2]) / 2, (box[5] - box[4]) / 2)
-	end
-	local beam, beamHalf = gate(c.AirBeam)
-	local crest, crestHalf = gate(c.AirCrest)
+	local beam, beamHalf = gateBox(lip, c.AirBeam)
+	local crest, crestHalf = gateBox(lip, c.AirCrest)
 	local step = 0.035
 	-- the fish's box over the time the sub is near it
 	local fish: { CFrame } = {}
@@ -475,7 +556,110 @@ function SubAir.plan(leap: Leap, half: Vector3, saddle: Vector3, hull: { number 
 	local atGate = (air.Meet - lip.Position):Dot(out) + 14
 	air.Over = air.Meet.Y + atGate * math.tan(air.Slope) > c.AirBeam[2]
 	air.Back = SubAir.entry(air) + SubAir.joining(half) * c.AirPeel
+	SubAir.frame(air, hull, lip)
 	return air
+end
+
+type Sample = { T: number, Rider: Vector3, Sub: CFrame, Fish: CFrame }
+
+-- The flight, every `step` seconds
+function SubAir.samples(air: Air, step: number): { Sample }
+	local list: { Sample } = {}
+	local entry = SubAir.entry(air)
+	local t = 0
+	while t <= air.RideAt do
+		table.insert(list, {
+			T = t,
+			Rider = SubAir.rider(air, t).Position,
+			Sub = SubAir.sub(air, t),
+			Fish = SubAir.fish(air, math.min(t, entry)),
+		})
+		t += step
+	end
+	return list
+end
+
+-- What is wrong with the camera as it is set, over the flight: seconds in the gate's arch, in the sub, in the fish, and
+-- with the arch between it and the rider
+function SubAir.seen(
+	air: Air,
+	hull: { number },
+	lip: CFrame,
+	samples: { Sample },
+	step: number
+): (number, number, number, number)
+	local c = Config.Sub
+	local beam, beamHalf = gateBox(lip, c.AirBeam)
+	local crest, crestHalf = gateBox(lip, c.AirCrest)
+	local centre, size = hullBox(hull, 0)
+	local gate, sub, fish, hidden = 0, 0, 0, 0
+	for _, s in samples do
+		if s.T < math.min(c.AirCamIn, air.HopAt) then
+			continue -- (still on its way from the player's own view)
+		end
+		local eye = SubAir.eye(air, s.T, s.Rider, s.Sub)
+		if inside(beam, beamHalf, eye, 2) or inside(crest, crestHalf, eye, 2) then
+			gate += step
+		end
+		if inside(s.Sub * centre, size, eye, 2) then
+			sub += step
+		end
+		if inside(s.Fish, air.Half, eye, 1) then
+			fish += step
+		end
+		if crosses(beam, beamHalf, eye, s.Rider) or crosses(crest, crestHalf, eye, s.Rider) then
+			hidden += step
+		end
+	end
+	return gate, sub, fish, hidden
+end
+
+-- The camera, chosen: the nearest to what Config asks that is clear of the sub, the gate's arch and the fish, and sees
+-- the rider
+function SubAir.frame(air: Air, hull: { number }, lip: CFrame)
+	local c = Config.Sub
+	local out = air.Out
+	local tail = math.max(air.Half.Z - air.Saddle.Z, 0)
+	local want = math.min(c.AirCam + tail * c.AirCamLong, c.AirCamMost)
+	local belly = hull[3] / math.cos(air.Slope)
+	local step = 0.04
+	local samples = SubAir.samples(air, step)
+	local best = math.huge
+	local pick = air.Eye
+	for _, gate in { 0, 1, -1 } do
+		for _, share in { 1, 0.75, 1.3, 1.7, 0.55, 2.2 } do
+			local eye: Eye = {
+				Back = math.max(want * share, c.AirCam * 0.8),
+				Pass = air.SeatAt,
+				Cap = air.Meet.Y - belly - c.AirCamClear,
+				Gate = gate,
+				Line = lip.Position:Dot(out) + c.AirBeam[5] + c.AirCamClear,
+			}
+			air.Eye = eye
+			-- when the sub's tail has gone over it
+			for _, s in samples do
+				if
+					s.T >= air.HopAt - 0.3
+					and s.Sub.Position:Dot(out) - hull[5] - 4 > SubAir.eye(air, s.T, s.Rider, s.Sub):Dot(out)
+				then
+					eye.Pass = s.T
+					break
+				end
+			end
+			local inGate, inSub, inFish, hidden = SubAir.seen(air, hull, lip, samples, step)
+			local cost = inGate * 20 + inSub * 60 + inFish * 4 + hidden * 3 + math.abs(math.log(share)) * 0.3
+			if cost < best - 1e-6 then
+				best, pick = cost, eye
+			end
+			if best < 0.05 then
+				break
+			end
+		end
+		if best < 0.05 then
+			break
+		end
+	end
+	air.Eye = pick
 end
 
 -- Where the run begins: straight on from the fall (or `pick`, and the way the path goes there)
