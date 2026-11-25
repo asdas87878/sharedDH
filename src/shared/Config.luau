@@ -3652,7 +3652,7 @@ Config.Sub = {
 	AirSwim = 0.9, -- the fish takes this long from its own splash to its place beside the sub, seconds (over 30 long, up to 1.6 times it)
 	AirPace = 60, -- it swims on at about this pace in between, studs a second
 	AirPeel = 0.5, -- it begins its sweeps at this share of that
-	AirWeave = 1, -- a sweep left and right needs at least this long, seconds: with less of the run left it stays beside the sub
+	AirWeave = 1.8, -- a sweep left and right needs at least this long, seconds: with less of the run left it stays beside the sub
 	AirSlack = 0.7, -- the server believes a leap begun at most this long before its word came, seconds,
 	AirReach = 45, -- and this far from where it has the player, studs
 }

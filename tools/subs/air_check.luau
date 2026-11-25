@@ -501,6 +501,7 @@ return function(x)
 	local csv = { "kind,size,tier,x,slant,crouched," .. table.concat(FIELDS, ",") .. ",where" }
 	local lists, stats, none, total = {}, {}, {}, 0
 	local coded = 0
+	local costs = {}
 	if which ~= "rules" then
 		local turn = 0
 		for _, row in leaps do
@@ -513,7 +514,9 @@ return function(x)
 					continue
 				end
 				local land = math.min(tier + 1, 10)
+				local clock = os.clock()
 				local trip, json = leap(row, tier, land)
+				table.insert(costs, (os.clock() - clock) * 1000)
 				local label = string.format("%s %s sub %d x%d slant %d%s", row.id, row.tier, tier, row.x, row.slant, if row.crouched then "" else " uncrouched")
 				total += 1
 				if not trip or not trip.Air then
@@ -549,6 +552,8 @@ return function(x)
 			end
 		end
 		print(string.format("%d leaps told, %d got no air hop", total, #none))
+		table.sort(costs)
+		print(string.format("a leap told costs the server %.0f ms, %.0f at most (here; luau in lune)", costs[math.ceil(#costs / 2)] or 0, costs[#costs] or 0))
 		for _, name in none do
 			print("  NONE " .. name)
 		end
@@ -568,7 +573,7 @@ return function(x)
 
 	if which ~= "rules" then
 		local runs = { hull = {}, wall = {}, camera = {}, frame = {}, turn = {}, jump = {}, home = {}, water = {}, plain = {}, sub = {} }
-		local turn, count = 0, 0
+		local turn, count, still = 0, 0, 0
 		for tier = 1, 9 do
 			for _, land in if tier == 9 then { 10, 5, 2 } elseif tier == 1 then { 2 } else { tier + 1 } do
 				for _, row in leaps do
@@ -589,6 +594,7 @@ return function(x)
 					local label = string.format("%s %s, sub %d to land %d", row.id, row.tier, tier, land)
 					local e = trip.Escort
 					local noRoom = not e.Right and not e.Left
+					still += if m.turns == 0 then 1 else 0
 					for key, isBad in
 						{
 							hull = m.hull < 0,
@@ -604,21 +610,21 @@ return function(x)
 						}
 					do
 						if isBad then
-							table.insert(runs[key], { label, row.tier })
+							table.insert(runs[key], { label .. (if type(m[key]) == "number" then string.format(" %.1f", m[key]) else ""), row.tier })
 						end
 					end
 					x.home()
 				end
 			end
 		end
-		print(string.format("%d runs", count))
+		print(string.format("%d runs, %d with no time for a sweep", count, still))
 		for key, list in runs do
 			local names, normal = {}, 0
 			for _, one in list do
 				normal += if one[2] == "Normal" then 1 else 0
 				table.insert(names, one[1])
 			end
-			print(string.format("RUN %s %d Normal %d Colossal of %d: %s", key, normal, #list - normal, count, table.concat(names, "; ", 1, math.min(4, #names))))
+			print(string.format("RUN %s %d Normal %d Colossal of %d: %s", key, normal, #list - normal, count, table.concat(names, "; ", 1, math.min(30, #names))))
 		end
 	end
 
