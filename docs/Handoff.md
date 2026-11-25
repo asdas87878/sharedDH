@@ -3,6 +3,18 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · Texts: B1 stickers on the dock, once a respawn; A3 for Required (NULLROOM f2, Hugo's PC)
+**State:** branch `texts-b1-a3`, **not pushed, not merged, not seen in Studio.** Hugo's picks, how and the numbers: [UI](design/ui.md),
+"The dock's lines and Required". [Before and after](attachments/texts-b1-a3.png).
+- **New:** `UI/Sticker`, `UI/ReqLine`, `Lib/RespawnLine`, `Config.DockLine`, `Config.ReqLine`. **Changed:** `DockNotes`
+  (`Start` and `waiting` new; its other calls the same), `GoalController`, `LessonPrompt` (the words' look only), `Tags` (the three-line
+  tag's last line), `tools/studio/lesson_check.py` (reads the lines' `Words` attribute: they are frames now, not labels).
+- **Checked offline:** `python tools/ui/texts_b1_a3/picture.py` (33 checks on the real modules, then the sheet); stylua, selene,
+  rojo build.
+- **Rest of the lesson unchanged**, but the words of a step begun between two respawns are normally not seen (first-minutes, "Built").
+- **Owed in Studio:** the slap and the fade by eye, the tag's line over a live fish (the letters' shadow is a label under a label
+  with automatic width), `lesson_check.py`, a real phone.
+
 ## 2026-11-25, each land its own fish, and the hook (game code)
 **State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Not played by hand.
 - **The fish by land** (the user: "the lesser fish go into the furthr areas and then the fish from that area dont spawn
