@@ -42,12 +42,11 @@ numbers are counted again from the exported meshes and are the options' own.
    eye at -44.63, 15.87, -45.34; tier 9's at -54.26, 22.32, -53.01).
 2. **The name sign over 9A.** `tools/subs/sign_fit.py --check` passes (tier 9: the model's top 15.8, the sign's lower
    edge 17.8, 1.2 studs of room over the horns' tips). The horns behind the sign still need the riding-view look.
-3. **In Studio (s2):** each glow colour keeps its own colour in the one `Hull_Glow` part (8A: magma seams and yellow
-   eyes; 9A: cyan suckers and yellow eyes); the gate's posts and the pick-up with the wider tier 8 (26 across, was
-   18) and the longer tier 9; the rider, the view ahead and the size beside the shark, on a trip, by eye.
-4. **As a run begins the camera stands close behind tier 9's tail** (30 studs behind the middle; the screw ends 26
-   behind it), so the ring fills the bottom of the picture for that moment (on the sheet, bottom right of tier 9's
-   block). The old tier 9 had the same tail, so this is not new, but nobody has looked at it.
+3. **In Studio: done 2026-11-25 (c1),** [sub models](sub-models.md), "Checked again after the merge": the glows keep their colours
+   (9A's eyes are not seen from the riding view), the gate and the pick-up measured, seen by eye. **Found, not put right:** 9A's head hides
+   the rider for about 0.3 s at the pick-up, its nose is in the lane's wall there at the lip's ends, its top breaks the surface.
+4. **As a run begins the camera stands close behind tier 9's tail:** 7.7 studs from the hull at the nearest in the first 1.5 s
+   (10.6 on tiers 1 and 8). The old tier 9 had the same tail, so this is not new; Hugo's call.
 
 ![the options](../attachments/subs-creature-options-1.png)
 

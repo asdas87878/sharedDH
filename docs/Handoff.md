@@ -3,6 +3,19 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · The subs checked again after the merge: nine tiers, the gate and pick-up, the shop (NULLROOM c1, Hugo's PC)
+**State:** pushed: one new check, one sheet, notes. **No `src/` change,** nothing uploaded, the place left as it was (Edit, no test parts,
+`full_check.py all` all good). All of it: [sub models](design/sub-models.md), "Checked again after the merge".
+[The sheet](attachments/c1-subs-nine-and-shop.jpg): nine tiers on a trip, the game's own view, and the shop.
+- **Passed on all nine:** rider and seat 0.00 off, propeller, wake, beam, sign, cards whole (PC and phone size), `picks_check.py` as its
+  last log, `card_fit`, `sign_fit`, `screw_check`. The window was live: no stale stills. Rows 35 and 36 and the notes by 119 and 132 of sub-models are put right.
+- **New:** `tools/studio/sub_clear_check.py` (`install`, `run [tier,fish,size,side ...]`, `remove`, `sums`): the sub's clearance from
+  the map, the camera and the rider, from the hire to 1.5 s into the run. Run `fish_sub_check`'s rules: one playtest, your own.
+- **Found, Hugo's call (nothing changed):** tier 9's kraken head goes through the rider and hides them for about 0.3 s at the pick-up;
+  its nose is 4 studs in the lane's wall there from the lip's ends; its top breaks the surface by 2.9 as a run begins; every tier comes
+  up through the walls at the lip's ends (out of the rider's sight, not of other players'); on a great white tiers 1, 8 and 9 clip one or two corals.
+- **Owed:** by hand, two players, a phone, the arrival's and the drop's clearance.
+
 ## 2026-11-25 · Auras: the flame, buying, the prices, no bubbles behind the cards (NULLROOM a1 and v2, Hugo's PC)
 **State:** pushed: `aura-build` merged with main (the dives and the sub hop, the entry below), with what Studio showed put right.
 `full_check.py all`: all good, no errors, the place equal to the repo after (one Config comment synced last, `place` run again). **Nothing is uploaded, and Hugo's place is not saved** (Ctrl+S by Hugo). Everything is in
