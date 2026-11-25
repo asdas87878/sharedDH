@@ -18,6 +18,11 @@
 --   instead of swimming, and hops off its saddle onto the seat; the fish sweeps left and right with the sub for the run
 --   and is back beside it for the kick. Every machine moves it by the trip (SubTrip.escort) while the server has it
 --   anchored (the fish of Workspace.Fish whose SubFor is that player), and while its rider sits on it keeps it under them.
+--   The air hop (Hugo, 2026-11-25; Config.Sub.AirHop; Lib/AirHop, Shared/SubAir): a leap on the ride fish off the lip with
+--   a trip set is told to the server as it begins ("SubLeap"), and its trip comes back while we are in the air: we jump
+--   off the saddle by ourselves (HopAt, by the clock, before the server's "Carried" may have come), the sub flies in under
+--   us, and it splashes into its run. Until the run everything here is `flight`; without the word in time the dive goes
+--   on and the trip is the escort's, under water.
 -- The camera is behind in every phase, on the middle line of what it follows, and never at the side or on its way
 -- round one (Hugo, 2026-11-23: "make sure it doesnt implement the camera on the side ever").
 -- The sub is the model of the tier the player has equipped (Shared/SubModels: a model a tier from the place's
@@ -31,8 +36,10 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
+local SubAir = require(ReplicatedStorage.Shared.SubAir)
 local SubModels = require(ReplicatedStorage.Shared.SubModels)
 local SubTrip = require(ReplicatedStorage.Shared.SubTrip)
+local AirHop = require(script.Parent.Parent.Lib.AirHop)
 local Feel = require(script.Parent.Parent.Lib.Feel)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Shake = require(script.Parent.Parent.Lib.Shake)
@@ -77,6 +84,8 @@ type Visual = {
 	ThinParts: { Instance }, -- the parts of it that takes
 	Lost: CFrame?, -- where we were as the fish was given up under us,
 	LostAt: number, -- and when, seconds into the trip
+	Flight: AirHop.Flight?, -- the air hop's
+	Held: boolean, -- our own: the camera has been handed on to the run's
 }
 
 local visuals: { [Player]: Visual } = {}
@@ -148,6 +157,8 @@ local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
 		ThinParts = {},
 		Lost = nil,
 		LostAt = 0,
+		Flight = AirHop.new(player, trip),
+		Held = false,
 	}
 	local more = v :: any
 	more.Offsets = offsets
@@ -155,7 +166,7 @@ local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
 	return v
 end
 
-local function place(v: Visual, cf: CFrame, speed: number, dt: number)
+local function place(v: Visual, cf: CFrame, speed: number, t: number, dt: number)
 	local offsets = (v :: any).Offsets :: { [BasePart]: CFrame }
 	-- (never so far in one frame that the two flights read as standing still or turning backwards: the screw looks the
 	-- same every half turn. docs/design/sub-props.md, "The turn rule")
@@ -180,7 +191,15 @@ local function place(v: Visual, cf: CFrame, speed: number, dt: number)
 		end
 	end
 	-- the bubble trail: more with the speed, and none once the sub is fading out (its bubbles do not fade with it)
-	v.Bubbles.Rate = if v.Faded then 0 else math.min(c.WakeLeast + speed * c.WakePerSpeed, c.WakeMost)
+	-- (and none in the air)
+	local air = v.Trip.Air
+	local dry = air ~= nil and cf.Y > Config.Depth.SurfaceY
+	local rate = math.min(c.WakeLeast + speed * c.WakePerSpeed, c.WakeMost)
+	if air then
+		-- (its splash's own bubbles and foam are enough: the trail comes up to the run's as the run gets going)
+		rate *= Ease.lerp(c.AirWake, 1, Ease.smoothstep(air.RideAt, air.RideAt + math.max(c.AirWakeIn, 0.01), t))
+	end
+	v.Bubbles.Rate = if v.Faded or dry then 0 else rate
 	v.Last = cf
 end
 
@@ -220,9 +239,24 @@ local function remove(player: Player)
 	if v then
 		v.Model:Destroy()
 		visuals[player] = nil
+		AirHop.remove(player)
 	end
 	if v and v == mine then
 		mine = nil
+		State.SubAloft = false
+		local flight = v.Flight
+		if flight and flight.From and not v.Held then
+			-- (given up in the air, off the fish's back: let go of; on its back the dive just goes on)
+			State.Leaping = false
+			if State.Mode == "Dock" then
+				local _, _, humanoid = State.character()
+				if humanoid then
+					humanoid.PlatformStand = false
+				end
+				workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+				workspace.CurrentCamera.FieldOfView = Config.Camera.Fov
+			end
+		end
 		gateKelp(false)
 		Shake.rumble("Sub", "Speed", 0)
 		-- given up before the drop: the land titles go back to normal, the arrival land's own included
@@ -300,7 +334,10 @@ end
 -- Where the trip has the escort's root, on our own machine with the pose the dive left it in eased away
 local function escortAt(v: Visual, t: number): CFrame?
 	local cf = SubTrip.escort(v.Trip, t)
-	if cf and v.Carry then
+	local air = v.Trip.Air
+	if cf and v.Carry and air then
+		return cf * CFrame.new():Lerp(v.Carry, 1 - Ease.smoothstep(air.HopAt, air.HopAt + 0.3, t))
+	elseif cf and v.Carry then
 		local pickupAt = SubTrip.times(v.Trip)
 		return cf * CFrame.new():Lerp(v.Carry, 1 - Ease.smoothstep(0, 0.6 * pickupAt, t))
 	end
@@ -359,7 +396,7 @@ local function escort(v: Visual, t: number)
 	end
 	-- someone else's: while they sit on it, under where we see them (their body reaches us a moment late)
 	local hopAt = pickupAt + Config.Sub.EscortHopFrom * trip.Pickup
-	if v ~= mine and t < hopAt + 0.25 then
+	if v ~= mine and t < hopAt + 0.25 and not trip.Air then
 		local body = v.Player.Character
 		local rider = body and body:FindFirstChild("HumanoidRootPart")
 		if rider and rider:IsA("BasePart") and (rider.Position - cf.Position).Magnitude < 80 + e.Half.Z then
@@ -384,7 +421,9 @@ local function thin(v: Visual, t: number, dt: number)
 	end
 	local _, rideAt = SubTrip.times(v.Trip)
 	local want = 0
-	if t < rideAt + 0.5 then
+	local air = v.Trip.Air
+	-- (after the air hop: until it has swum up to its place)
+	if t < (if air then SubAir.entry(air) + SubAir.joining(e.Half) else rideAt + 0.5) then
 		local o = root.CFrame:PointToObjectSpace(workspace.CurrentCamera.CFrame.Position)
 		local room = Config.Sub.EscortThinRoom
 		if math.abs(o.X) < e.Half.X + room and math.abs(o.Y) < e.Half.Y + room and math.abs(o.Z) < e.Half.Z + room then
@@ -671,6 +710,126 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 end
 
+-- The sub in the air is in sight from where it comes into its way in (further back it would be in the hub's stalls)
+local function flyIn(v: Visual, t: number)
+	local air = v.Trip.Air
+	if not air or v.Said.here then
+		return
+	end
+	v.Said.here = t >= air.SeatAt
+	local back = (air.Meet - SubAir.middle(air, math.min(t, air.SeatAt))).Magnitude
+	local hidden = Ease.smoothstep(Config.Sub.AirFrom * 0.75, Config.Sub.AirFrom, back)
+	for _, p in v.Parts do
+		p.LocalTransparencyModifier = hidden
+	end
+end
+
+-- A leap told to the server (leapt), and until its word is back the view stays the player's own, carried along: the dive's
+-- film swings out beside the fish at once, and would be fetched back behind it. No word by then (no trip after all): over
+-- to the film
+local WAIT, WAIT_OUT = 0.35, 0.35
+local waitFrom: CFrame? = nil -- the view as the leap began, against us
+local waitFov, waitAt = 70, 0
+
+local function waiting(root: BasePart): (CFrame?, number)
+	local from = waitFrom
+	local since = os.clock() - waitAt
+	if not from or since > WAIT + WAIT_OUT then
+		return nil, 0
+	end
+	local camera = workspace.CurrentCamera
+	local held = SubAir.held(from, root.Position)
+	local w = Ease.smoothstep(WAIT, WAIT + WAIT_OUT, since)
+	return held:Lerp(camera.CFrame, w), Ease.lerp(waitFov, camera.FieldOfView, w)
+end
+
+local function wait()
+	if not waitFrom then
+		return
+	end
+	local _, root = State.character()
+	local held, heldFov = nil :: CFrame?, 0
+	if root and State.Leaping and State.Mode == "Dock" then
+		held, heldFov = waiting(root)
+	end
+	if held then
+		local camera = workspace.CurrentCamera
+		camera.CFrame, camera.FieldOfView = held, heldFov
+	else
+		waitFrom = nil
+	end
+end
+
+-- Our own air hop, each frame until the run: our body from the jump on (by the clock: the server's "Carried" may still be
+-- on its way), and the camera all along. True: all of this frame
+local function flight(v: Visual, sub: CFrame, t: number, dt: number, root: BasePart, humanoid: Humanoid): boolean
+	local air, f = v.Trip.Air, v.Flight
+	if not air or not f then
+		return false
+	end
+	if t >= air.RideAt then
+		State.SubAloft = false
+		if State.Mode == "Carried" then
+			State.Leaping = false
+		end
+		if not v.Held and camKind ~= "sub" and f.Eye and f.Look then
+			-- (the run's camera goes on from this one)
+			camKind, camAnchor, camPos, camFocus, fov = "sub", sub.Position, f.Eye, f.Look, f.Fov
+		end
+		v.Held = true
+		return State.Mode == "Dock"
+	end
+	-- (no bubbles or tumble under water: SubController's other trips)
+	v.Entry = v.Entry or root.CFrame
+	v.Said.scoop, v.Said.seat = true, true
+	local mode = State.Mode
+	if humanoid.Health <= 0 or (mode ~= "Dock" and mode ~= "Carried") then
+		return true
+	end
+	if not f.From and (t >= air.HopAt or mode == "Carried") then
+		local e = v.Trip.Escort
+		local planned = SubTrip.escort(v.Trip, t)
+		if e and planned then
+			v.Carry = planned:ToObjectSpace(root.CFrame * CFrame.new(-e.Saddle))
+		end
+		AirHop.begin(f, root.CFrame, t)
+		DiveController.letGo("Carried")
+	end
+	escort(v, t)
+	AirHop.fish(f, v.Fish, t)
+	AirHop.moments(f, t)
+	gateKelp(true)
+	State.SubAloft = t < air.SplashAt
+	if f.From then
+		local cf = AirHop.rider(f, t)
+		humanoid.PlatformStand = true
+		-- (until the server has us carried this keeps the dock's own rules off us: RideController)
+		State.Leaping = mode ~= "Carried"
+		local was = v.RiderLast or cf.Position
+		root.CFrame = cf
+		root.AssemblyLinearVelocity = (cf.Position - was) / math.max(dt, 1e-3)
+		root.AssemblyAngularVelocity = Vector3.zero
+		v.RiderLast = cf.Position
+		State.Heading = yawOf(air.Out)
+		Feel.rush(0.7 * Ease.smoothstep(air.SeatAt, air.SplashAt, t))
+		thin(v, t, dt)
+	end
+	local camera = workspace.CurrentCamera
+	local held, heldFov = waiting(root)
+	if held then
+		-- (on from the player's own view, not from where the dive's film has gone to)
+		camera.CFrame, camera.FieldOfView = held, heldFov
+		waitFrom = nil
+	end
+	local view, wide = AirHop.view(f, root.Position, t)
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.FieldOfView = wide
+	-- (before the jump the dive's camera runs the shakes on)
+	camera.CFrame = view * Shake.update(if f.From then dt else 0)
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	return true
+end
+
 -- Our own trip, each frame: the moments (sounds, bursts, banners), where we are, our fish, the camera
 local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number)
 	local trip = v.Trip
@@ -678,6 +837,9 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 	local pickupAt, rideAt, arriveAt, dropAt = SubTrip.times(trip)
 	local _, root, humanoid = State.character()
 	if not root or not humanoid then
+		return
+	end
+	if flight(v, sub, t, dt, root, humanoid) then
 		return
 	end
 	if not v.Entry then
@@ -692,6 +854,10 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 			Fx.burst(root.Position + UP * 2, 30, 0, 9)
 			Feel.sound("Splash", 0.7, 0.9, 0.9)
 		end
+	end
+	if v.Flight then
+		AirHop.fish(v.Flight, v.Fish, t)
+		AirHop.moments(v.Flight, t)
 	end
 	if trip.Escort then
 		if not v.Lost and t < rideAt and v.Fish and v.Fish:GetAttribute("SubLeave") ~= nil then
@@ -788,17 +954,31 @@ end
 
 local function step(dt: number)
 	local clock = now()
+	if not mine then
+		wait()
+	end
 	for player, v in visuals do
 		local trip = v.Trip
 		local t = clock - trip.Start
+		local air = v.Flight
+		if air and v ~= mine then
+			-- (someone else's air hop: as late as their body reaches us)
+			t -= AirHop.lag(air, t)
+		end
 		local _, _, _, _, endAt = SubTrip.times(trip)
 		if t > endAt + 4 then
 			remove(player)
 		else
 			local cf, speed = SubTrip.sub(trip, t)
-			place(v, cf, speed, dt)
+			place(v, cf, speed, t, dt)
+			flyIn(v, t)
 			if v ~= mine then
 				escort(v, t)
+				if air then
+					AirHop.fish(air, v.Fish, t)
+					AirHop.moments(air, t)
+					AirHop.place(air, cf, t)
+				end
 			end
 			if t > endAt and not v.Faded then
 				v.Faded = true
@@ -883,7 +1063,37 @@ function SubController.Init()
 	end)
 end
 
+-- Our ride fish has leapt off the lip: told to the server if there is a sub to come for us (SubService, SubLeap)
+local function leapt(leap: { [string]: any })
+	local c = Config.Sub
+	local me = State.Player
+	local equip, dest = me:GetAttribute("SubEquip"), me:GetAttribute("SubDest")
+	if
+		c.On == 0
+		or c.AirHop == 0
+		or c.Escort == 0
+		or type(equip) ~= "number"
+		or equip < 1
+		or type(dest) ~= "number"
+		or dest < 2
+	then
+		return
+	end
+	leap.Start = now()
+	Net.Action:FireServer("SubLeap", leap)
+	local _, root = State.character()
+	if root and Config.Dive.LeapCam > 0 then
+		local camera = workspace.CurrentCamera
+		waitFrom = CFrame.new(camera.CFrame.Position - root.Position) * camera.CFrame.Rotation
+		waitFov, waitAt = camera.FieldOfView, os.clock()
+	end
+end
+
 function SubController.Start()
+	DiveController.Began = leapt
+	DiveController.Quiet = AirHop.quiet
+	State.AirPose = AirHop.riderPose
+	State.AfterPose = AirHop.pose
 	Players.PlayerAdded:Connect(watch)
 	Players.PlayerRemoving:Connect(remove)
 	for _, player in Players:GetPlayers() do

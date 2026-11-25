@@ -115,7 +115,7 @@ end
 
 local function update(dt: number)
 	local c = Config.Sounds
-	local want = if State.inWater() or State.Mode == "Carried" then 1 else 0 -- (in a sub's hold we are under too)
+	local want = if State.inWater() or (State.Mode == "Carried" and not State.SubAloft) then 1 else 0 -- (in a sub's hold we are under too)
 	wet += (want - wet) * (1 - math.exp(-dt * c.Ease))
 	loops.Music.Volume = c.MusicVolume * (1 + (c.MusicUnder - 1) * wet)
 	loops.Sea.Volume = c.SeaVolume * (1 - wet)

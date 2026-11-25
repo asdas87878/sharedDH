@@ -16,7 +16,7 @@
 --       (ride it out through the gate: Config.TankRide.Out)
 --     the submarine (SubService, docs/design/submarine.md): "SubBuy" (the next tier) | "SubEquip", n | "SubPick", land,
 --       fishKey (where to go, 0: no sub; the tank fish to ride with, "id|size|variant" or "") | "SubLand", fish (the
---       kick has put us on our fish)
+--       kick has put us on our fish) | "SubLeap", leap (the air hop: our ride fish's leap off the lip, as it begins)
 --     the auras (AuraService): "AuraBuy", tier (the card pressed at the aura stall, UI/AuraShop)
 --     the Fuse machine (FuseService): "Fuse", { pick, pick, pick } (a pick: "T" and a tank key, "H" and a carried key)
 --     not finished: "Place", index, id (the old click to put a carried fish in the tank) still has its handler in AquariumService,

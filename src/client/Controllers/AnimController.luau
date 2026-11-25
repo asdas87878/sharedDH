@@ -271,6 +271,7 @@ type RiderJoints = {
 	since: number,
 	phase: number, -- the swimming stroke's clock, radians
 	lean: number,
+	mount: CFrame?, -- how far their land fish's body last shifted them (the air hop lets go of it bit by bit)
 }
 local riderJoints: { [Model]: RiderJoints } = setmetatable({}, { __mode = "k" }) :: any
 
@@ -2142,6 +2143,19 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 			phase = leapOf(player)
 		end
 		return leapLandPose(phase or 3, t)
+	elseif state == "AirHop" then
+		-- the submarine's air hop (State.AirPose): crouching on the fish's back, the push, tucked over the top, legs out
+		-- for the seat
+		local airOf = State.AirPose
+		local hop = (if airOf then airOf(player) else nil) or 1
+		if hop < 0 then
+			local leapOf = State.LeapPose
+			local phase = if leapOf then (leapOf(player)) else nil
+			return blend(leapLandPose(phase or 1.5, t), crouched(), Ease.smoothstep(-1, -0.2, hop))
+		end
+		local up = blend(crouched(), streamlined(t, 0), Ease.smoothstep(0, 0.18, hop))
+		local over = blend(up, tucked(), Ease.smoothstep(0.3, 0.55, hop))
+		return blend(over, astride(t, 1.6, 0, 0, 0, 0, 0), Ease.smoothstep(0.62, 0.9, hop))
 	elseif state == "Reeling" then
 		local u, time = JumpController.reel()
 		return dash(t, u or 1, time)
@@ -2260,7 +2274,9 @@ local function animateRider(player: Player, character: Model, state: string, dt:
 	-- on a fish, the rider goes with its body: the eased shift the fish worked out this frame (the wave, the landing's
 	-- dip, the rearing, a buck), about the fish's Root, so they stay on the back without being shaken
 	local mount: CFrame? = nil
-	if state == "Riding" or state == "Land" or state == "LeapLand" then
+	local hop = if state == "AirHop" and State.AirPose then State.AirPose(player) else nil
+	local onLand = state == "Land" or state == "LeapLand" or (hop ~= nil and hop < 0)
+	if state == "Riding" or onLand then
 		local fish = ridden[player.UserId]
 		local fj = if fish then fishJoints[fish] else nil
 		local fishRoot = fish and fish.PrimaryPart
@@ -2279,7 +2295,7 @@ local function animateRider(player: Player, character: Model, state: string, dt:
 			and (
 				(fishRoot.Position - seated.Position).Magnitude < MOUNT_REACH
 				-- (the land fish is welded to us: its Root can be further off on a giant)
-				or ((state == "Land" or state == "LeapLand") and fj.land ~= nil and fj.land.rider == player.UserId)
+				or (onLand and fj.land ~= nil and fj.land.rider == player.UserId)
 			)
 		then
 			-- (in the joint's own directions already: it is taken about the joint as it stands)
@@ -2298,6 +2314,12 @@ local function animateRider(player: Player, character: Model, state: string, dt:
 			goal.RightHip = (goal.RightHip or CFrame.identity) * rot(f * 18 * math.sin(now * 9 + 3), 0, 0)
 			goal.Waist = (goal.Waist or CFrame.identity) * rot(-fj.leanBack * 0.7, 0, 0)
 		end
+	end
+	if hop and hop >= 0 and j.mount then
+		-- (off the fish's back from where its body had them, not from its saddle's rest in one frame)
+		mount = (j.mount :: CFrame):Lerp(CFrame.identity, Ease.smoothstep(0, 0.4, hop))
+	elseif state ~= "AirHop" or mount then
+		j.mount = if onLand then mount else nil
 	end
 	local a = Ease.alpha(Config.Pose.Blend, dt)
 	for name, motor in j.motors do
@@ -2441,6 +2463,11 @@ function AnimController.Start()
 					state = if mounted then "LeapLand" else "Leap"
 				end
 			end
+			-- and off it in the air onto the submarine (Config.Sub.AirHop, SubController)
+			local airOf = State.AirPose
+			if airOf and airOf(player) then
+				state = "AirHop"
+			end
 			if character and type(state) == "string" then
 				if state ~= "Dock" then
 					animateRider(player, character, state, dt, t)
@@ -2462,6 +2489,10 @@ function AnimController.Start()
 		if character and (State.inWater() or State.Leaping) and t - lastStop > 0.25 then
 			lastStop = t
 			stopTracks(character)
+		end
+		local after = State.AfterPose
+		if after then
+			after()
 		end
 	end)
 end

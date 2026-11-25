@@ -95,7 +95,10 @@ local function film(f: any, p: any, sums: any): Row
 		after = 0,
 		walls = {},
 		lowest = math.huge, -- how low the camera goes, studs over the surface
+		rose = 0, -- and once it is under the surface, the most it comes up again,
+		over = 0, -- and how far back over the surface (Hugo, 2026-11-25: never)
 	}
+	local wet = math.huge -- the lowest since it went under
 	local t, run = 0.1, 0
 	while t <= p.tFollow + Config.Dive.LeapCamHandBack do
 		local at = sums.frameAt(t)
@@ -118,6 +121,14 @@ local function film(f: any, p: any, sums: any): Row
 					row.fish, row.fishAt = worst, t
 				end
 			end
+		end
+		local height = view.Y - p.surface
+		if wet < math.huge then
+			row.rose = math.max(row.rose, height - wet)
+			row.over = math.max(row.over, height)
+		end
+		if height < 0 then
+			wet = math.min(wet, height)
 		end
 		-- the camera in the fish's box
 		local inner = at:PointToObjectSpace(view.Position)
@@ -243,6 +254,9 @@ for _, kind in Config.Fish do
 			end
 			if row.film.rider > 1 then
 				fail(`{name}: the rider goes out of the view ({row.film.rider})`)
+			end
+			if row.film.over > 0 then
+				fail(`{name}: the camera comes {row.film.over} studs back up over the surface once it is under it`)
 			end
 			if row.film.inBox > 0 then
 				fail(

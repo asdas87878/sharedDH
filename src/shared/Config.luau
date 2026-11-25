@@ -3693,6 +3693,84 @@ Config.Sub = {
 	EscortSettle = 0.2, -- and it is there this long before the kick, seconds
 	EscortKickLead = 24, -- a long fish waits this far ahead for the kick (its tail out of the camera's way), studs at most
 	EscortFade = 0.5, -- a fish given up in the middle (unequipped) swims off and fades for this long, seconds
+	-- the air hop (Hugo, 2026-11-25: "make the player jump off the fish mid air then instantly hopping on the submarine
+	-- that should fly in then splash into the water, the animation should be fast enough to where the player has fun";
+	-- docs/design/submarine.md, "The air hop"). Where everything is in it: Shared/SubAir. Check a change with
+	-- tools/subs/air_check.luau. None of it played yet. Every Escort number above is still in use: the swim to the sub
+	-- and the hop under water (EscortOut to EscortAside, EscortBack to EscortDip) are the old hop's, which AirHop 0
+	-- brings back exactly, and which still runs when a leap gets no air hop (a step off the lip with no leap, a lost
+	-- message); the rest are the swim beside the sub, the same for both. Made shorter, the camera steadier and the
+	-- trail weaker the same day (Hugo: "a little slow, can you make it shorter without making it awkward"; task f1):
+	-- what each number was before is in the note
+	AirHop = 1, -- 1: on the ride fish with a trip set, the hop onto the sub is in the air; 0: under water, as on 2026-11-24
+	AirAt = 0.6, -- you jump off at this share of the way to the top of the fish's arc,
+	AirAtLeast = 0.3, -- but not sooner than this after the leap began, seconds (the server's word has to be back),
+	AirAtMost = 0.48, -- nor later than this
+	AirCrouch = 0.12, -- the anticipation: you crouch on its back for this long before, seconds
+	AirPush = 1.6, -- the fish dips this far as you push off it, studs
+	AirHopTime = 0.35, -- from the saddle to the seat, seconds
+	AirClimb = 25, -- up to a seat more than this far over the saddle (a big fish), studs,
+	AirClimbSlow = 0.003, -- it takes this much longer for each stud,
+	AirClimbMost = 0.1, -- at most this much, seconds (and you jump half of that sooner)
+	AirOver = 12, -- the hop's top is about this far over the seat, studs (over the sub's tower as it goes by under you)
+	AirDown = 75, -- and you come down onto the seat at this speed, studs a second
+	AirAhead = 23, -- the seat meets you this far ahead of where you left the saddle, studs
+	AirAheadLong = 0.35, -- or this share of what the fish has ahead of its saddle,
+	AirAheadMost = 45, -- at most this far
+	AirLater = 0.4, -- where the fish's nose comes up in the sub's way, you jump later by up to this much, seconds
+	AirLate = 0.25, -- word of the trip coming after the moment to jump: you still get at least this long in the air, seconds
+	AirSquash = 1, -- the squash as you land on the seat (0: none)
+	AirDip = 1.6, -- and the sub dips this far under you, studs,
+	AirNod = 5, -- its nose this much, degrees,
+	AirDipTime = 0.3, -- for this long, seconds
+	AirSpeed = 95, -- the sub's speed as its seat meets you, studs a second,
+	AirRush = 1500, -- faster by this much for every second before it (studs a second squared),
+	AirRushFrom = 0.18, -- up to this long before it, seconds (from here on it is level with you)
+	AirSeen = 1.1, -- it is there this long before it meets you, seconds
+	AirFrom = 200, -- and in sight from this far back on its way in, studs
+	AirSwoopFrom = 75, -- further back than this it comes swooping down, over the hub's stands, studs:
+	AirSwoop = 0.005, -- higher by this much for every stud of that squared
+	AirGap = 2, -- its hull passes this far over the fish's box (and off the gate's arch), studs
+	AirRiseMost = 90, -- at most this much higher for that, studs
+	AirSlopes = { 0, 10, 16, 20, 24, 28, 32, 36, 40, 44 } :: { number }, -- the slopes it may come in down, degrees: level, under the gate's beam; else over the arch
+	AirArch = 88, -- the lip is this far in front of the dock's spawn, studs (tools/map/greybox.py); the gate's arch against the lip:
+	AirBeam = { 68, 54.5, 70, -21, -7 } :: { number }, -- the beam and the sign: half the width, from this high, to this high, from this far behind the lip, to this
+	AirCrest = { 46, 70, 80, -21, -7 } :: { number }, -- and the wave on it (tools/map/hub_kit.py, arch)
+	AirFall = 0.4, -- from the seat to the sub's middle in the water, seconds at least (longer from high up: the fish that leap highest)
+	AirFallPace = 520, -- but never faster over the water than this, studs a second,
+	AirFallDrop = 460, -- nor going down at more than this
+	AirOutMost = 320, -- as it reaches the water it goes out at most this fast, studs a second,
+	AirDownMost = 280, -- and down at most this fast
+	AirFallLeast = 45, -- it comes down at least this far out, studs; further past a long fish's nose,
+	AirFallMost = 380, -- at most this far
+	AirNose = 30, -- its nose goes down at most this far, degrees
+	AirSoon = 1.5, -- a fall that ends later than this after the fish left the lip: other ways in are tried for a sooner one, seconds
+	AirUnder = 0.3, -- from the splash to the run, seconds
+	AirBankIn = 0.4, -- it banks into the run's first bend over this long, seconds
+	AirRun = 150, -- the run begins at this speed, studs a second (no stop)
+	AirCam = 34, -- the camera this far behind you in the leap, studs, and more for a big fish:
+	AirCamLong = 0.15, -- by this much of what it has behind its saddle,
+	AirCamMost = 45, -- at most this far
+	AirCamUp = 10, -- and this far over you, or
+	AirCamClear = 4, -- this far over the fish's back and off the sub's hull
+	AirCamNod = 0.65, -- it looks up (and down) after you by this share of the way to you, all of it by the run's start
+	AirCamTurn = 3, -- it is put where it turns no more than about this in a 60th of a second, degrees
+	AirCamRise = 0.36, -- it rises to over the sub in this long, once that has gone by over it, seconds
+	AirCamIn = 0.45, -- seconds it takes from the player's own view to there
+	AirCamSub = 32, -- in the sub's fall it is this far behind its middle, studs,
+	AirCamSubUp = 14, -- and this far over it,
+	AirCamNose = 1.2, -- and as much higher as its tail is over its nose at that distance, times this
+	AirFov = 10, -- the view kicks this much wider at the splash, degrees
+	AirShake = 1, -- the landing's and the splash's shake, at this strength
+	AirSplash = 1, -- the sub's splash, at this strength (0: none)
+	AirWake = 0.35, -- the sub's bubble trail from the splash on, times this (none in the air),
+	AirWakeIn = 0.8, -- up to the run's own over this long from its start, seconds
+	AirSwim = 0.85, -- the fish takes this long from its own splash to its place beside the sub, seconds (over 30 long, up to 1.6 times it)
+	AirPace = 60, -- it swims on at about this pace in between, studs a second
+	AirPeel = 0.25, -- it begins its sweeps at this share of that
+	AirWeave = 1.8, -- a sweep left and right needs at least this long, seconds: with less of the run left it stays beside the sub
+	AirSlack = 0.7, -- the server believes a leap begun at most this long before its word came, seconds,
+	AirReach = 45, -- and this far from where it has the player, studs
 }
 
 -- The land titles on a sub run (task t1, Hugo 2026-11-20: "if title pops up, make sure that the old ones blends out
