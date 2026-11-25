@@ -3,6 +3,20 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · Fusing at the Fuse machine (NULLROOM u1, Hugo's PC)
+**State:** committed on the branch `fusing` (from `ede1ff7`), **not pushed, not merged, not in Studio.** Nothing uploaded. Everything:
+[fusing](design/fusing.md). Off: `Config.Fuse.On` 0.
+- **New:** `Shared/Fuse`, `FuseService`, `AquariumService.fuse`, `RideService.fuseCarried`, `UI/FusePanel`, `Config.Fuse`, `tools/fuse/`.
+  **Changed:** "Hands" rows carry the carried key as a fourth value (readers that take three are untouched); `StallController` (the
+  Fuse ring; **a ring you are put down on no longer opens its window, for every stall**), `HubSigns`, `SoundController`, `Net` (comments).
+- **Checked offline:** 164 and 97, none failed; stylua, selene (0 errors, its 3 old warnings), rojo build, types clean in the new files;
+  `index/panel_test` 91 and `auras/aura_test` 61 pass. `index/index_test` fails 3 of 73 (the Shallows' set pay), the same on `ede1ff7` without this.
+- **Owed:** Studio (the window, the show, the live models in the pods, a real save and rejoin), a phone, by hand.
+- **Merging:** tried (no branch changed) against `texts-b1-a3`, `pictures-index-offline`, `offline-rewards`, `air-hop` and `index-look`,
+  one at a time, as committed at 14:50: no conflict in code, only in notes (Handoff, Decisions, ui.md, Code map: keep both sides), and
+  both fuse tests pass on each merged tree. Not tried: all of them together.
+- **For the tuning chat:** with sizes mixed, 9 fish of a kind make a Colossal (by the plain odds 1 in 250 in the wild, not measured). `Fuse.SameSize` 1 closes it.
+
 ## 2026-11-25 · Texts: B1 stickers on the dock, once a respawn; A3 for Required (NULLROOM f2, Hugo's PC)
 **State:** branch `texts-b1-a3`, **not pushed, not merged, not seen in Studio.** Hugo's picks, how and the numbers: [UI](design/ui.md),
 "The dock's lines and Required". [Before and after](attachments/texts-b1-a3.png).

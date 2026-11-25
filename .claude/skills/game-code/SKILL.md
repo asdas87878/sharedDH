@@ -64,3 +64,8 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   icon). Pictures `art/ui/aura_flame`, local only (`python tools/auras/flame_pics.py`); to upload: the six in its `upload/` (with ids
   in `Auras.Pictures`, `Aura.Turn` does nothing). Design:
   [auras](docs/design/auras.md). Checks: `tools/auras/aura_test.luau` (lune on a built place), `tools/studio/aura_check.py`.
+- **Fusing (2026-11-25; NULLROOM u1; not seen in Studio):** three of a kind become one a size bigger. Rules `Shared/Fuse` (plain sums);
+  `FuseService` (Action "Fuse", three picks "T"key or "H"key; on the dock near `Dock.Stations.Fuse.Ring`; Ride "Fused"/"FuseDenied");
+  the step is `AquariumService.fuse` (checks all, then `RideService.fuseCarried`, then the tank; **never put a wait in it**);
+  `UI/FusePanel`; `Config.Fuse` (`On`, `Price`, `SameSize`, `Earning`). A ring the player is put down on opens nothing
+  (`StallController`, every stall). Design: [fusing](docs/design/fusing.md). Checks: `tools/fuse/fuse_test.luau`, `panel_test.luau`, `picture.py`.

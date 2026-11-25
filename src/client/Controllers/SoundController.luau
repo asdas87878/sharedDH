@@ -33,6 +33,7 @@ local HEARD: { [string]: string } = {
 	SubDenied = "No",
 	AuraBought = "Up",
 	AuraDenied = "No",
+	FuseDenied = "No",
 }
 
 local group: SoundGroup
@@ -178,6 +179,8 @@ function SoundController.Start()
 		local name = HEARD[what]
 		if name then
 			SoundController.play(name)
+		elseif what == "Fused" then -- (as the bigger one comes out: UI/FusePanel's show)
+			task.delay(Config.Fuse.SwirlTime, SoundController.play, "Up")
 		elseif
 			what == "Denied" and (action == "Tame" or action == "Equip" or action == "Hold" or action == "Place")
 		then

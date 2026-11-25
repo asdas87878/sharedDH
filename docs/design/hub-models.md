@@ -305,6 +305,9 @@ The user: "change the stalls so they are more simplistic, more alike to ride a d
 - **Run:** standing on SELL's circle its middle went from 0.8 see-through to 0.35, and back on stepping off.
 - **Not done:** not on a phone; the place not saved.
 
+## The Fuse machine works (2026-11-25)
+The ring opens the Fuse window; what the place must hold for it (`Ring`, `Core`, the sign's `Sub`): [fusing](fusing.md).
+
 ## The keepers behind the stands (2026-11-23)
 The user: "Add specialised characters behind every stand ... a looping idle animation where they stand while bobbing
 up and down a little smoothly then doing something for a second, they should also follow the player when the player
