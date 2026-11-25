@@ -41,7 +41,7 @@ The rule behind the two bigger packs: **the Oxygen holds the next land and not t
 
 **Which Great White.** `GreatWhite`: the remodel (from `TrialGreatWhite`) replaces the old one for everyone, uploaded 2026-11-25
 ([six creatures added](added-2026-11-25.md)). Land 3, Epic, needs 9,900 Normal, 52 studs; Colossal is x2.8 long, about 146 studs.
-The creatures chat was asked and has not answered; the note above is the old creature chat's, which installed it.
+The creatures chat confirms the folder and that it replaces the plain one (same name and id: every player can tame this model); the old creature chat installed it and waits for the user's word on saving the place.
 
 **What it's worth against playing free** (the tuning model in `tools/balance/`, run unedited; five seeds, the middle one; today's
 five new kinds are left out because the model has no base numbers for them yet):
