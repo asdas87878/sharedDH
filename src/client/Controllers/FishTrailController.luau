@@ -18,6 +18,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local FishTrailColours = require(ReplicatedStorage.Shared.FishTrailColours)
 local FishTrails = require(ReplicatedStorage.Shared.FishTrails)
 local FishTrailRig = require(script.Parent.Parent.Lib.FishTrailRig)
+local Kit = require(script.Parent.Parent.UI.Kit)
 local State = require(script.Parent.Parent.Lib.State)
 
 local FishTrailController = {}
@@ -79,12 +80,7 @@ local function levelOf(now: number): FishTrails.Level
 	if saved >= 1 and saved <= FishTrails.LiteLevel then
 		return FishTrails.Levels.Lite
 	end
-	if
-		saved < 1
-		and FishTrails.LiteTouch > 0
-		and UserInputService.TouchEnabled
-		and not UserInputService.KeyboardEnabled
-	then
+	if FishTrails.LiteTouch > 0 and Kit.touch() then
 		return FishTrails.Levels.Lite
 	end
 	if fps < FishTrails.SlowFps then
@@ -234,9 +230,13 @@ local function candidates(level: FishTrails.Level, camera: Camera, held: { [Mode
 		if look then
 			local score = -math.huge
 			if not own then
-				score = distance * (if away:Dot(facing) < 0 then FishTrails.Behind else 1)
-					- FishTrails.StepNear * (look.Step - 1)
-					- (if held[model] then FishTrails.Keep else 0)
+				if
+					distance > FishTrails.OffNear + look.Size.Z / 2
+					and away:Dot(facing) < distance * FishTrails.OffScreen
+				then
+					continue
+				end
+				score = distance - FishTrails.StepNear * (look.Step - 1) - (if held[model] then FishTrails.Keep else 0)
 			end
 			table.insert(picks, {
 				Model = model,

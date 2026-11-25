@@ -44,7 +44,8 @@ end
 FishTrails.Look = 0.25 -- seconds between looks at who should have a trail
 FishTrails.Keep = 18 -- a fish that has one counts as this much nearer, studs (two fish don't swap back and forth)
 FishTrails.StepNear = 22 -- and each power step as this much nearer
-FishTrails.Behind = 1.8 -- a fish behind the camera counts as this many times as far
+FishTrails.OffScreen = 0.35 -- none for a fish this far out of the view (the cosine of its angle off the middle: 0.35 is 70 degrees),
+FishTrails.OffNear = 30 -- but one whose body is nearer than this, studs, is never off it
 FishTrails.SurfaceGap = 2 -- no trail for a fish whose middle is nearer the sea's surface than this, studs, or over it
 
 export type Level = { Rigs: number, Far: number, Particles: number, Draws: number, Most: number, Rate: number }
@@ -52,11 +53,11 @@ FishTrails.Levels = {
 	-- Rigs: trails at once. Far: none past this, studs. Particles and Draws: the most in all, worked out (a step is taken off the
 	-- last of them until it fits; Draws counts one for each emitter, ribbon and front sheet). Most: the top step.
 	-- Rate: times every emitter's rate.
-	Full = { Rigs = 10, Far = 180, Particles = 320, Draws = 56, Most = 6, Rate = 1 },
-	Lite = { Rigs = 5, Far = 110, Particles = 70, Draws = 18, Most = 3, Rate = 0.5 },
+	Full = { Rigs = 8, Far = 180, Particles = 260, Draws = 48, Most = 6, Rate = 1 },
+	Lite = { Rigs = 4, Far = 110, Particles = 60, Draws = 16, Most = 3, Rate = 0.5 },
 } :: { [string]: Level }
 
--- Lite is picked by the saved graphics level (this or lower), by a touch device left on Automatic, or after SlowFor seconds
+-- Lite is picked by the saved graphics level (this or lower), by a phone or tablet (Kit.touch) whatever its level, or after SlowFor seconds
 -- under SlowFps (back to Full after FastFor over FastFps). In Studio workspace's "FishTrailsLevel" ("Full" or "Lite") wins.
 FishTrails.LiteLevel = 3
 FishTrails.LiteTouch = 1

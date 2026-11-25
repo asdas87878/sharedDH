@@ -78,15 +78,15 @@ Switch: `FishTrails.On` in the numbers (1 new, 0 the old wake); in Studio worksp
 in Play. `FishTrailsLevel` ("Full" or "Lite") forces the level; `FishTrailsMeasure` true writes the numbers on workspace.
 
 ## Cost
-- **Pool:** 10 rigs (Full) or 5 (Lite), made once. A rig is two anchored, invisible parts with all its layers on them, in
+- **Pool:** 8 rigs (Full) or 4 (Lite), made once. A rig is two anchored, invisible parts with all its layers on them, in
   `workspace.FishTrails`; a new fish only sets numbers. The parts move by one `BulkMoveTo` a frame. A rig that goes to another fish wipes its ribbons and
   throws nothing for two frames.
-- **Who gets one:** every 0.25 s, our own fish first, then by nearness and step, within 180 studs (Lite 110). All
-  of them together are held under 320 particles and 56 drawn (Lite 70 and 18): the last ones lose a step at a time.
-  Land 10's usual ten (Plumes) come to 230 and 50, so they fit whole.
-- **Lite:** Plume at most (so no corkscrews, rings, front or glow), half the rates. By the saved graphics level (3 or lower), a touch device on Automatic, or
+- **Who gets one:** every 0.25 s, our own fish first, then by nearness and step, within 180 studs (Lite 110), and never one off the screen. All
+  of them together are held under 260 particles and 48 drawn (Lite 60 and 16): the last ones lose a step at a time.
+  Eight Plumes (land 10's usual) come to 184 and 40, so they fit whole.
+- **Lite:** Plume at most (so no corkscrews, rings, front or glow), half the rates. By the saved graphics level (3 or lower), any phone or tablet (`Kit.touch`), or
   3 seconds under 40 fps (back after 20 good ones). A covered Studio is slow too, so a measurement forces the level.
-- **Budget:** under 1 ms of script a frame, under 320 particles, no instance made after the start.
+- **Budget:** under 1 ms of script a frame, under 260 particles, no instance made after the start.
 
 ## Measured
 Not yet.
