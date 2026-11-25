@@ -31,6 +31,8 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-25, NULLROOM u1 (Hugo's PC): fusing is built on the branch `fusing`, not merged.** For the game-code, UI and tuning chats:
+  Handoff, top entry, and [fusing](design/fusing.md). Needs `Dock.Stations.Fuse.Ring` in the place.
 - **2026-11-25, NULLROOM v2 (Hugo's PC): Studio is back on main and free (18:27).** In Edit, every script equal to the repo (`bb2a35f`), no
   test parts, the branch's extra `Client.Lib.EatMoves` deleted, mouse and camera reset and read back; not saved. Its open file is an auto-recovery
   copy (`ride-a-fish-map_AutoRecovery_0.rbxl`), as before me. The two eating moves wait on branch `eat-anim` for Hugo (not merged, not pushed).

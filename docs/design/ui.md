@@ -18,6 +18,10 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The Fuse window (2026-11-25, Hugo; NULLROOM u1): built, not seen in Studio
+The Fuse machine's window, opened by its ring: [fusing](fusing.md), [the picture](../attachments/fuse-window.png). A ring the player is put
+down on (a spawn, the way back from a dive) now opens nothing until they step off and on again: every stall's, `StallController`.
+
 ## The dock's lines and Required (2026-11-25, Hugo; NULLROOM f2): on main, seen in Studio
 Hugo, of the [text options](../attachments/texts-b1-a3.png): "use sticker b1 for the dive in and catch a fish, andmoney progress, make
 sure this text only shows up when you respawn, it should only stay for a couple of seconds before fading out. The too strong text

@@ -26,6 +26,7 @@
 --   The auras: Aura: their prices, the stall, and how the flame is drawn
 --   The submarine: Sub, SubTitles: the bought ride to deeper lands, its prices, and the land titles on the way
 --   The Index: Index: what a new kind and a finished land pay, and how the server watches for catches (DRAFT)
+--   Fusing: Fuse: three fish of a kind made one, a size bigger, at the Fuse machine
 --   Spawn mix and the roster list: ZoneMix, ReachWeight, Fish, FishById: rarity odds per land, every fish kind
 --   Helper functions: no tables; the sums worked out from the tables above, the roster build and Config.refresh
 --   (metresAt, landStyleOf, longOf and failOf sit beside their own tables, not with the helper functions.)
@@ -3779,6 +3780,26 @@ Config.Index = {
 	Secrets = 1,
 	Watch = 0.25, -- seconds between the server's looks at what each player carries and keeps (how a catch is seen)
 	AskGap = 0.2, -- the least seconds between two asks from one player; a faster one is dropped
+}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Fusing: three fish of a kind made one, a size bigger, at the Fuse machine
+
+-- Fusing (Hugo, 2026-11-25: "the biggest dino grows in size and doesnt inherit traits, but it keeps its own traits when
+-- fused"; docs/design/fusing.md; the rules: Shared/Fuse, the server's step: AquariumService.fuse). Not played by hand.
+-- What is not Hugo's word is the plan's, to be confirmed: free of charge, the sizes mixed freely, a stored or carried
+-- fish only, a Colossal refused, the first put in stays of equals
+Config.Fuse = {
+	On = 1, -- 0: no fusing: the ring opens nothing, the stall says COMING SOON, the server refuses. Read live
+	Price = 0, -- coins one fusing costs
+	SameSize = 0, -- 1: the three must be the same size too (0: any three of a kind, as the reference: two Tinies raise a Huge)
+	Earning = 0, -- 1: a fish earning in the tank may be fused too (0: it must be unequipped first, as for selling)
+	SureSize = "Giant", -- a fish used up that is this big or bigger is asked about first, as one with a colour always is
+	Near = 30, -- the machine works within this many studs of its ring (Dock.Stations.Fuse), as the sub's stand
+	AskGap = 0.5, -- one ask at a time: a second press within this many seconds is the same click, seconds
+	-- the show in the window: the two swirl into the middle, the bigger one comes out (a press skips it), seconds
+	SwirlTime = 1.1,
+	HoldTime = 1.5, -- and the new one stands there this long before the window is ready again
 }
 
 ----------------------------------------------------------------------------------------------------------------------
