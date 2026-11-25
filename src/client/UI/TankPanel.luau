@@ -54,6 +54,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
 local Anim = require(script.Parent.Anim)
+local CatchShow = require(script.Parent.CatchShow)
 local DockNotes = require(script.Parent.DockNotes)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
@@ -1235,7 +1236,8 @@ local function watchClicks()
 	UserInputService.InputEnded:Connect(function(input: InputObject, processed: boolean)
 		local start = downAt[input]
 		downAt[input] = nil
-		if not start or processed or State.Mode ~= "Dock" then
+		-- (a click while the end of a dive shows is its skip, not the tank's)
+		if not start or processed or State.Mode ~= "Dock" or CatchShow.showing() then
 			return
 		end
 		if (input.Position - start.at).Magnitude > CLICK_MOVE or os.clock() - start.t > CLICK_TIME then

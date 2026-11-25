@@ -16,6 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Zones = require(ReplicatedStorage.Shared.Zones)
+local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
 local Slots = require(script.Parent.Slots)
@@ -678,7 +679,8 @@ end
 -- with BEST! right beside it, "FISH CAUGHT!", the metres on a black oval (no CONTINUE button since 2026-11-19). Every word is a rarity
 -- word (Kit.word) in an angular font (Bangers) with a thick dark edge, a gradient, a shine line and a glow; the
 -- metres in the land strip's cartoon font. A see-through dark backdrop under it, and the backdrop and the screen fade
--- in and out together. A click or tap anywhere skips to the end; the next closes (CatchShow.play).
+-- in and out together. A click or tap anywhere skips to the end; the next closes (CatchShow.play). It never
+-- holds the camera, the stick or a button.
 local SCREEN_FONT = Enum.Font.Bangers
 local BACKDROP = 0.35 -- how dark the backdrop gets (black at this share: a little darker, still see-through)
 local FADE_IN, FADE_OUT = 0.22, 0.3
@@ -1360,6 +1362,7 @@ local KEYS: { [Enum.KeyCode]: boolean } = {
 	[Enum.KeyCode.ButtonA] = true,
 }
 
+local TAP_MOVE, TAP_TIME = 14, 0.4 -- a press further (pixels) or longer (seconds) than this is a drag, the camera's
 local MOVE_AFTER = 0.8 -- seconds the screen is up before moving closes it
 
 local function moving(): boolean
@@ -1381,15 +1384,11 @@ function CatchShow.play(parent: Instance, look: number, metres: number, isBest: 
 	local start = CatchShow.Clock()
 	local goneAt = show.length
 	local closing = false
+	local windows = Anim.Windows
 	local entry: { show: Show, conns: { RBXScriptConnection } }
-	local hit: TextButton? = nil
 	local function close(t: number)
 		closing = true
 		goneAt = (show.leave :: (number) -> number)(t)
-		-- (presses go on through to the game while it fades)
-		if hit then
-			hit.Visible = false
-		end
 	end
 	pressNow = function()
 		if current ~= entry or closing then
@@ -1406,22 +1405,24 @@ function CatchShow.play(parent: Instance, look: number, metres: number, isBest: 
 	end
 	entry = { show = show, conns = {} }
 	if show.leave then
-		-- one button over the whole screen takes every press (nothing behind it gets them while the screen is up)
-		local button: TextButton = Kit.new("TextButton", {
-			Name = "ShowHit",
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.new(1, 600, 1, 600),
-			BackgroundTransparency = 1,
-			Text = "",
-			AutoButtonColor = false,
-			ZIndex = 99,
-		}, show.root)
-		hit = button
+		-- Nothing of it takes the mouse or a finger: the camera turns, the stick walks and the game's buttons work under it
+		-- (a button over the whole screen held all three until 2026-11-25, the user). A click or tap is told from a drag
+		-- as it is let go
+		local downAt: { [InputObject]: { At: Vector3, Time: number } } = {}
 		table.insert(
 			entry.conns,
-			button.InputBegan:Connect(function(input: InputObject)
-				if PRESS[input.UserInputType] then
+			UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+				if PRESS[input.UserInputType] and not processed then
+					downAt[input] = { At = input.Position, Time = os.clock() }
+				end
+			end)
+		)
+		table.insert(
+			entry.conns,
+			UserInputService.InputEnded:Connect(function(input: InputObject)
+				local down = downAt[input]
+				downAt[input] = nil
+				if down and (input.Position - down.At).Magnitude <= TAP_MOVE and os.clock() - down.Time <= TAP_TIME then
 					pressNow()
 				end
 			end)
@@ -1441,7 +1442,8 @@ function CatchShow.play(parent: Instance, look: number, metres: number, isBest: 
 		RunService.RenderStepped:Connect(function()
 			local t = CatchShow.Clock() - start
 			-- (walking off closes it too, once it has been up a moment: the player is never held by it, 2026-11-24)
-			if not closing and show.leave and t >= MOVE_AFTER and moving() then
+			-- (and so does a window, opened under it)
+			if not closing and show.leave and (Anim.Windows > windows or (t >= MOVE_AFTER and moving())) then
 				close(t)
 			end
 			if not closing and show.leave and show.settled and t >= show.settled + CatchShow.Wait then

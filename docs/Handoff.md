@@ -3,6 +3,14 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, the camera turns while the end of a dive shows (game code)
+**State:** committed, **not pushed**; **not in the Studio place yet** (the user was in Play).
+- The user: "allow the player to turn their camera whilst it displays on screen. right now it blocks that". A see-through
+  button over the whole screen (`ShowHit`) took every press. It is gone (`UI/CatchShow`): the camera, a phone's stick and the
+  game's buttons all work under the show. A click or tap (told from a drag as it is let go: 14 pixels, 0.4 s) still skips,
+  then closes; walking, or a window opened under it, closes it too. A skip's click does not open the tank's popup
+  (`TankPanel`). `SoundController` lost its exception for `ShowHit`; `tools/ui/catch_show/c1_client.luau` prints `hit=-` now.
+
 ## 2026-11-25, each land's own fish round a rider; the seahorse's pops (game code)
 **State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Not played by hand.
 - **The fish** (the user: "im still not fully certain the second pink area fish are spawning as they should"). Right: the

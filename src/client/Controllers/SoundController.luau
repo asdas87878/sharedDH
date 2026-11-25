@@ -123,10 +123,9 @@ local function update(dt: number)
 	cut.MidGain = c.CutMid * wet
 end
 
--- The buttons on the dock: any press of one ticks (not the whole-screen one the catch screen lies under, nor Roblox's
--- own stick and jump on a phone)
+-- The buttons on the dock: any press of one ticks (not Roblox's own stick and jump on a phone)
 local function watchButton(d: Instance)
-	if d:IsA("GuiButton") and d.Name ~= "ShowHit" then
+	if d:IsA("GuiButton") then
 		local screen = d:FindFirstAncestorOfClass("ScreenGui")
 		if screen and (screen.Name == "TouchGui" or screen.Name == "ContextActionGui") then
 			return
