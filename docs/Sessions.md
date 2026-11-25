@@ -31,6 +31,9 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-25, NULLROOM v2 (Hugo's PC): Studio is back on main and free (18:27).** In Edit, every script equal to the repo (`bb2a35f`), no
+  test parts, the branch's extra `Client.Lib.EatMoves` deleted, mouse and camera reset and read back; not saved. Its open file is an auto-recovery
+  copy (`ride-a-fish-map_AutoRecovery_0.rbxl`), as before me. The two eating moves wait on branch `eat-anim` for Hugo (not merged, not pushed).
 - **2026-11-24, NULLROOM a1 (Hugo's PC): the auras are built, seen in Studio and on main (2026-11-25).** For the tuning chat: the twelve
   prices changed (Handoff, top entry). Their check: `python tools/studio/aura_check.py run`.
 - **2026-11-24, the UI chat: `Anim.toast` no longer loses a piece asked for while it is leaving** (the first-minutes chat found it; `leaving` in Anim).
