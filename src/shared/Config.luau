@@ -23,6 +23,7 @@
 --   Server leeway: Net: how much lag and reach the server allows when it judges a grab or a landing
 --   The camera, look and animation: Camera, Look, Animation, Pose, Feel, AimHud: view, light, motion, the reticle
 --   Spawning and the dive-in: Spawn, Dive: where wild fish are made, and stepping off the dock into the sea
+--   The leaderboards: Boards: the hub's boards, where they stand, what they list and how often they ask Roblox's store
 --   The auras: Aura: their prices, the stall, and how the flame is drawn
 --   The submarine: Sub, SubTitles: the bought ride to deeper lands, its prices, and the land titles on the way
 --   The Index: Index: what a new kind and a finished land pay, and how the server watches for catches (DRAFT)
@@ -2947,6 +2948,97 @@ Config.Admin = {
 	Owner = 1, -- 1: the place's owner (a user, or a group's owner) is allowed; 0: only the list
 	Maxes = { 200, 500, 2000, 4500, 8000 } :: { number }, -- the max Oxygen buttons (past 2000: the extra thin rings)
 	Coins = { 1000, 100000 } :: { number }, -- the coin buttons
+}
+
+----------------------------------------------------------------------------------------------------------------------
+-- The leaderboards: three boards in the hub, who is on them, and where they stand
+
+-- The hub's leaderboards (Hugo, 2026-11-25: "Make stylised leaderboards in this style, but fitting the aquatic theme";
+-- NULLROOM task l1; docs/design/leaderboards.md). LeaderboardService keeps the lists, BoardController builds the boards
+-- on each player's own machine from Shared/Boards, UI/BoardPanel writes on them. Read live, except Global, Store and List.
+Config.Boards = {
+	On = 1, -- 0: no boards, nothing stored, and the old blank slate (Replaces) stays
+	Replaces = { "Earners" }, -- stations of the hub that the boards stand in place of: taken out while the game runs (the place keeps them)
+	-- where they stand: the middle of the row on the hub's floor (Dock.HubFloor), along the wall right of the dive gate
+	X = -78, -- studs from the floor's middle line, the sea ahead of you and minus to the right
+	Z = 39, -- studs in from the floor's edge at the sea
+	Face = 180, -- which way the whole row faces: 0 the sea, 180 straight into the hub, less: turned towards the hub's middle
+	Pitch = 12.9, -- studs from one board's middle to the next; 12.9 is the least (Boards.least), more makes the posts wider
+	Scale = 1, -- every size times this
+	Hide = 420, -- past this the boards are taken out of the world
+	ScrollNear = 24, -- studs within which the list can be scrolled (further off a finger on it turns the camera)
+	-- what they list
+	Keep = 50, -- places kept on each board (100 is the most Roblox hands over at once)
+	Rows = 8, -- places seen at once; the rest is scrolled to
+	HideUsers = {} :: { number }, -- user ids never listed and never stored (developers, admins)
+	-- the timing and the limits
+	Refresh = 60, -- seconds between two looks at the stored lists
+	Watch = 5, -- seconds between looks at this server's own players
+	WriteEvery = 120, -- a player's new number is stored at most this often, seconds (and as they leave)
+	WriteGap = 0.5, -- seconds between two writes of a server
+	Reserve = 5, -- a write waits while the game has this few left to spend (Roblox's own limit)
+	Backoff = 30, -- seconds a board waits after a failed request; doubled each time, to BackoffMost
+	BackoffMost = 600,
+	Stale = 600, -- a stored list older than this (the store is down) gives way to this server's own players
+	AskGap = 2, -- the least seconds between two asks for the lists from one player
+	-- Global 1: a board whose number is saved (its Saved part is on in Lib/SaveParts) lists every player of the game;
+	-- while saving is off, and 0: this server's players only, and the board says so
+	Global = 1,
+	Store = "Boards1_", -- the stored lists' names: this and the board's Id. A new name starts the boards again
+	-- Id; Title and Line, what it is called and the small words under it; Attribute, the player attribute it reads
+	-- (none: LeaderboardService's own way); Saved, the save part (SaveParts) its number is kept in; Scale, whole steps
+	-- to one (10: tenths are kept); Money, written with a $; Unit, the word under each
+	-- number; Emblem, the icon at the board's head (Shared/Boards)
+	List = {
+		{
+			Id = "Oxygen",
+			Title = "TOP OXYGEN",
+			Line = "biggest max Oxygen",
+			Unit = "OXYGEN",
+			Attribute = "MaxOxygen",
+			Saved = "Oxygen",
+			Scale = 1,
+			Money = 0,
+			Emblem = "Bubble",
+			On = 1,
+		},
+		{
+			Id = "Collectors",
+			Title = "TOP COLLECTORS",
+			Line = "fish looks in the Index",
+			Unit = "LOOKS",
+			Attribute = "",
+			Saved = "Index", -- (no such part yet: the Index is not saved, so this board stays with this server's players)
+			Scale = 1,
+			Money = 0,
+			Emblem = "Book",
+			On = 1,
+		},
+		{
+			Id = "Earners",
+			Title = "TOP EARNERS",
+			Line = "tank coins a second",
+			Unit = "A SECOND",
+			Attribute = "Income",
+			Saved = "Tank",
+			Scale = 10,
+			Money = 1,
+			Emblem = "Chest",
+			On = 1,
+		},
+		{
+			Id = "Deepest",
+			Title = "DEEPEST DIVERS",
+			Line = "furthest dive, metres",
+			Unit = "METRES",
+			Attribute = "BestMetres",
+			Saved = "Best",
+			Scale = 1,
+			Money = 0,
+			Emblem = "Anchor",
+			On = 0, -- a client moves its own character, so this number is the easiest to cheat (docs/reviews/code-audit)
+		},
+	},
 }
 
 ----------------------------------------------------------------------------------------------------------------------

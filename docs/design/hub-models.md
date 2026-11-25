@@ -376,6 +376,11 @@ numbers the game reads.
 - **Still not done:** the real draw calls (an estimate only), a stand that streams in late, and Hugo's eye on how they
   read under the awnings at play distance (they are small there: see the pictures).
 
+## The leaderboards by the gate (2026-11-25, branch `leaderboards`)
+Built by code on each player's own machine, like the keepers: nothing in the place, nothing uploaded. They stand where the
+blank "Earners" slate is, which is moved out of the running game only. The spot, the frames, the parts and what stands in
+front of them: [leaderboards](leaderboards.md).
+
 ## What moved, and why
 The hub's size, layout and colours are questions waiting for the user, so nothing of those changed. Three things
 shifted a little so the bigger models fit:

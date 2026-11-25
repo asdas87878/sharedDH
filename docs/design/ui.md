@@ -38,6 +38,10 @@ after, drawn from the trees the game's code builds (`python tools/ui/texts_b1_a3
   the letters themselves cannot go lighter: the outline and the shadow are what is thinner.
 - **Not touched:** "Too strong!" under the ring, "TOO STRONG!" on the tag, the last words, "needs n".
 
+## The leaderboards (2026-11-25, Hugo; NULLROOM task l1): on a branch, not seen in Studio
+Three boards by the dive gate, top Oxygen, top collectors, top earners: the list in our own letters and plates
+(`UI/BoardPanel`), with a flat icon on the bar at each head. Everything is in [leaderboards](leaderboards.md).
+
 ## The Index window and the stand rings (2026-11-24, Hugo; NULLROOM tasks h1, h2, h4): in the game
 Hugo, 2026-11-23: "Import index system". Built by worker h2, the sub stand's ring by h1, both merged and checked in
 Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictures).
