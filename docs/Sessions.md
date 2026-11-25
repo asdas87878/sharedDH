@@ -31,6 +31,7 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-25, NULLROOM z1 (Hugo's PC): the mid-air hop, the texts and fusing are on main; Studio given back (19:41), Edit equal to 7bfd3a4, not saved.** Handoff, top entry.
 - **2026-11-25, NULLROOM u1 (Hugo's PC): fusing is on main since z1.** For the game-code, UI and tuning chats:
   Handoff, top entry, and [fusing](design/fusing.md). Needs `Dock.Stations.Fuse.Ring` in the place.
 - **2026-11-25, NULLROOM v2 (Hugo's PC): Studio is back on main and free (18:27).** In Edit, every script equal to the repo (`bb2a35f`), no
