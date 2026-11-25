@@ -13,7 +13,7 @@
 --   Sub      the subs bought and the one equipped (SubService.tierOf, equipOf, setSub)
 --   Aura     the aura owned and worn (AuraService.tierOf, setTier); never lowered
 --   Best     the furthest they have been (BestService's two attributes, which are where it keeps them)
---   Index    the looks caught and the rewards claimed (IndexService.dump, restore)
+--   Index    the looks caught, rewards claimed and worn saddle (IndexService.dump, restore)
 --   Packs    the packs sold once that they have, and when the boost they bought ends (PackService.dump, restore)
 --   Lesson   whether the first minutes' lesson is over (LessonService.dump, restore); first, so a returning player's
 --            tank coming back doesn't look like a first deposit
@@ -132,6 +132,7 @@ function SaveParts.join(part: Join)
 		end
 		return tank
 	end, restoreTank)
+	IndexService.SavesClaims = true
 	part("Index", IndexService.dump, function(player, kept)
 		assert(IndexService.restore(player, kept) == true, "the Index was not given back")
 	end)
