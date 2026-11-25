@@ -101,6 +101,9 @@ export type Shape = {
 	At: Vector3, -- the middle of its foot
 	Grow: number, -- its particles are this many times as big
 	Own: boolean, -- round our own ride: we look through it
+	Ride: number, -- a smaller version: 0 on foot to 1 riding (what it leaves out on the ride: part)
+	Head: number, -- a smaller version: the top of the wearer's head over its foot (a crown stays over it; 0: no matter)
+	Small: { [string]: any }?, -- the smaller version (Config.Aura.Smalls) it is in, riding
 }
 
 -- The tier each thing comes in at
@@ -146,6 +149,10 @@ AuraVolume.Adds = {
 
 AuraVolume.Avatar = 2.1 -- an avatar's own half width, studs: a mount is measured against it
 AuraVolume.Steps = 14 -- a fade is written in this many steps
+AuraVolume.Tall = 5.2 -- the top of an avatar's head over its feet,
+AuraVolume.SatTall = 3.6 -- and over a fish's back, sat on it
+AuraVolume.Saddle = 1.4 -- a rider's root over the fish's back (Config.Ride.SeatHeight): a smaller version stands there,
+AuraVolume.Hug = 1.1 -- and its ribbons go no further out than this many of its radii
 
 local WHITE = Color3.new(1, 1, 1)
 
@@ -681,14 +688,56 @@ end
 -- How it stands
 ---------------------------------------------------------------------------------------------------------------------
 
-function AuraVolume.foot(spec: Spec): Shape
-	return { X = spec.Radius, Z = spec.Radius, Height = spec.Height, At = Vector3.zero, Grow = 1, Own = false }
+-- The smaller version that is on (Config.Aura.Small), nil for none
+function AuraVolume.small(c: { [string]: any }?): { [string]: any }?
+	return if c and c.Small > 0 then c.Smalls[c.Small] else nil
+end
+
+function AuraVolume.foot(spec: Spec, c: { [string]: any }?): Shape
+	local set = AuraVolume.small(c)
+	local reach = if set then set.Reach else 1
+	return {
+		X = spec.Radius * reach,
+		Z = spec.Radius * reach,
+		Height = spec.Height * (if set then set.Tall else 1),
+		At = Vector3.zero,
+		Grow = if set then set.Pictures else 1,
+		Own = false,
+		Ride = 0,
+		Head = if set then AuraVolume.Tall else 0,
+		Small = nil,
+	}
+end
+
+-- A smaller version, riding: round the rider only (seat: their root), its foot a little over the fish's back
+local function hug(spec: Spec, seat: Vector3, set: { [string]: any }): Shape
+	local k = (spec.Tier - 1) / 11
+	local wide = lerp(set.Wide[1], set.Wide[2], k)
+	local wisp = 1
+	for _, l in spec.Layers do
+		wisp = if l.Name == "Wisps" then l.Size[1][2] else wisp
+	end
+	return {
+		X = wide,
+		Z = wide,
+		Height = lerp(set.High[1], set.High[2], k),
+		At = seat - Vector3.new(0, AuraVolume.Saddle - set.Lift, 0),
+		Grow = lerp(set.Wisp[1], set.Wisp[2], k) / wisp,
+		Own = false,
+		Ride = 1,
+		Head = AuraVolume.SatTall - set.Lift,
+		Small = set,
+	}
 end
 
 -- Round a rider and what they ride as one. body: its width, height and length about its own middle; seat: where the
 -- rider's root is in its space; eye: our own camera's distance when the rider is us (the camera sits a few studs behind
 -- the rider whatever they ride, so our own aura never reaches back to it), nil for anyone else
 function AuraVolume.ride(spec: Spec, body: Vector3, seat: Vector3, eye: number?, c: { [string]: any }): Shape
+	local set = AuraVolume.small(c)
+	if set then
+		return hug(spec, seat, set)
+	end
 	if c.EyeCalm < 1 then
 		eye = nil -- (our own is as everyone sees it)
 	end
@@ -719,7 +768,17 @@ function AuraVolume.ride(spec: Spec, body: Vector3, seat: Vector3, eye: number?,
 	end
 	-- as tall as the two together, and over them by what the tier's own height is over an avatar
 	local tall = (top - low) + math.max(spec.Height - 5.2, 0) * 0.6 * math.min(grow, 1.6)
-	return { X = x, Z = z, Height = math.max(tall, 3), At = at, Grow = grow, Own = eye ~= nil }
+	return {
+		X = x,
+		Z = z,
+		Height = math.max(tall, 3),
+		At = at,
+		Grow = grow,
+		Own = eye ~= nil,
+		Ride = 0,
+		Head = 0,
+		Small = nil,
+	}
 end
 
 -- Between two ways of standing (0 the first, 1 the second)
@@ -731,18 +790,62 @@ function AuraVolume.between(a: Shape, b: Shape, k: number): Shape
 		At = a.At:Lerp(b.At, k),
 		Grow = lerp(a.Grow, b.Grow, k),
 		Own = if k < 0.5 then a.Own else b.Own,
+		Ride = lerp(a.Ride, b.Ride, k),
+		Head = lerp(a.Head, b.Head, k),
+		Small = b.Small or a.Small,
 	}
 end
 
 -- How strong it is drawn there (our own calmer one, Aura.EyeCalm: the less the higher its tier)
 function AuraVolume.strong(spec: Spec, s: Shape, c: { [string]: any }): number
+	local set = AuraVolume.small(c)
+	if set then
+		return lerp(set.Strength, set.Solid, s.Ride)
+	end
 	return if s.Own then lerp(1, c.EyeStrength, (spec.Tier - 1) / 11) else 1
+end
+
+-- The share of one piece (a layer, a ribbon, "Light") a smaller version draws there, 0 to 1
+function AuraVolume.part(name: string, s: Shape, c: { [string]: any }): number
+	local set = AuraVolume.small(c)
+	if not set then
+		return 1
+	end
+	return lerp(set.Foot[name] or 1, set.Ride[name] or 0, s.Ride)
+end
+
+-- Whether a piece is drawn there at all (one a smaller version leaves out of the ride is gone half-way on)
+function AuraVolume.there(name: string, s: Shape, c: { [string]: any }): boolean
+	local set = AuraVolume.small(c)
+	if not set then
+		return true
+	end
+	return ((if s.Ride < 0.5 then set.Foot[name] else set.Ride[name] or 0) or 1) > 0
+end
+
+-- How far behind where it is a piece is drawn, studs (Roblox's ZOffset: its size on the screen stays): a smaller version's
+-- near side, `wide` radii out, comes out behind the rider it is round. The low ribbon (Low) is where it is: it is what
+-- goes round them
+function AuraVolume.behind(name: string, wide: number, s: Shape): number
+	local set = s.Small
+	if not set or set.Low[name] then
+		return 0
+	end
+	return (math.max(s.X, s.Z) * wide + set.Back) * s.Ride
 end
 
 -- How many of a layer are let out a second
 function AuraVolume.rate(l: Layer, s: Shape, detail: number, c: { [string]: any }): number
 	if s.Own and l.Across then
 		return 0
+	end
+	local set = AuraVolume.small(c)
+	if set then
+		if not AuraVolume.there(l.Name, s, c) then
+			return 0
+		end
+		local few = if l.Name == "Wisps" then lerp(l.Rate, math.max(l.Rate, set.Wisps), s.Ride) else l.Rate
+		return few * AuraVolume.Rates[detail]
 	end
 	local rate = l.Rate * math.clamp(s.Grow, 1, c.RideMore)
 	if l.Name == "Wisps" and s.Grow > 1 then
@@ -762,7 +865,8 @@ function AuraVolume.place(l: Layer, s: Shape): (number, Vector3)
 	elseif l.Place == "Foot" then
 		return 0.6 * s.Grow, wide + Vector3.new(0, 0.5 * s.Grow, 0)
 	elseif l.Place == "Top" then
-		return s.Height * 0.54, wide + Vector3.new(0, 0.2, 0)
+		local over = if s.Head > 0 then s.Head + l.Size[1][2] * s.Grow * 0.42 else 0
+		return math.max(s.Height * 0.54, over), wide + Vector3.new(0, 0.2, 0)
 	elseif l.Name == "Pillar" then
 		return s.Height * 0.62, wide + Vector3.new(0, 1, 0)
 	elseif l.Place == "Wall" then
@@ -783,11 +887,18 @@ function AuraVolume.strandAt(s: Strand, shape: Shape, i: number, clock: number, 
 	local angle = (s.From + s.Turns * u) * 2 * math.pi + s.Spin * clock
 	local sign = if s.Spin < 0 then -1 else 1
 	angle = if sign < 0 then -(s.From + s.Turns * u) * 2 * math.pi + s.Spin * clock else angle
-	local wide = lerp(s.WideLow, s.WideHigh, u) * (1 + 0.05 * AuraVolume.wander(t, s.Seed + i * 3))
+	local out, tall = lerp(s.WideLow, s.WideHigh, u), shape.Height
+	local set = shape.Small
+	if set then
+		-- (a serpent's wide sweep too goes round the rider, and the low ribbon stays under the chest)
+		out = lerp(out, math.min(out, AuraVolume.Hug), shape.Ride)
+		tall = lerp(tall, math.min(tall, set.Low[s.Name] or tall), shape.Ride)
+	end
+	local wide = out * (1 + 0.05 * AuraVolume.wander(t, s.Seed + i * 3))
 	local x, z = shape.X * wide, shape.Z * wide
-	local y = (lerp(s.Low, s.High, u) + s.Wave * AuraVolume.wander(t * 0.8, s.Seed + i * 5) * u) * shape.Height
+	local y = (lerp(s.Low, s.High, u) + s.Wave * AuraVolume.wander(t * 0.8, s.Seed + i * 5) * u) * tall
 	local swept = s.Turns * 2 * math.pi / s.Beams -- of one Beam
-	local rise = (s.High - s.Low) * shape.Height / s.Beams
+	local rise = (s.High - s.Low) * tall / s.Beams
 	local handle = 4 / 3 * math.tan(swept / 4)
 	-- the way on: d(place)/d(u of one Beam), as the cubic wants it (its handle is a third of that, near enough)
 	local along = Vector3.new(-math.sin(angle) * x * sign * handle, rise / 3, math.cos(angle) * z * sign * handle)

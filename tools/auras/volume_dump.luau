@@ -1,6 +1,6 @@
 -- The 3D auras' own numbers for the offline pictures (tools/auras/volume_shots.py): Shared/AuraVolume's spec, places and
 -- ribbons, written as JSON, so a picture is drawn from what the game draws.
--- usage: lune run tools/auras/volume_dump.luau <place.rbxl> <out.json> <times, comma separated>
+-- usage: lune run tools/auras/volume_dump.luau <place.rbxl> <out.json> <times, comma separated> [Config.Aura.Small]
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
@@ -11,6 +11,7 @@ local world = Harness.open(process.args[1])
 local V = world.require(world.find("ReplicatedStorage.Shared.AuraVolume"))
 local Config = world.require(world.find("ReplicatedStorage.Shared.Config"))
 local Vector3: any = roblox.Vector3
+local small = tonumber(process.args[4] or "0") :: number
 
 local function xyz(v: any): { number }
 	return { v.X, v.Y, v.Z }
@@ -36,7 +37,7 @@ local scenes: { any } = {}
 for tier = 1, 12 do
 	table.insert(scenes, { Name = `foot{tier}`, Tier = tier })
 end
-for _, id in { "Clownfish", "HammerheadShark", "BlueWhale" } do
+for _, id in { "Clownfish", "HammerheadShark", "Livyatan" } do
 	for _, tier in { 1, 6, 12 } do
 		-- (as another player sees it, and as its rider does)
 		table.insert(scenes, { Name = `{id}{tier}`, Tier = tier, Mount = mount(id) })
@@ -50,8 +51,9 @@ for _, scene in scenes do
 	local spec = V.spec(scene.Tier)
 	local m = scene.Mount
 	local c = table.clone(Config.Aura)
+	c.Small = small
 	c.EyeCalm = if scene.Calm then 1 else c.EyeCalm
-	local shape = if m then V.ride(spec, m.Body, m.Seat, scene.Eye, c) else V.foot(spec)
+	local shape = if m then V.ride(spec, m.Body, m.Seat, scene.Eye, c) else V.foot(spec, c)
 	local layers = {}
 	for _, l in spec.Layers do
 		local up, size = V.place(l, shape)
@@ -62,6 +64,9 @@ for _, scene in scenes do
 		row.Up = up
 		row.Rate = V.rate(l, shape, 3, c)
 		row.Box = xyz(size)
+		row.Part = V.part(l.Name, shape, c)
+		row.There = V.there(l.Name, shape, c)
+		row.Behind = V.behind(l.Name, l.Wide, shape)
 		table.insert(layers, row)
 	end
 	local frames = {}
@@ -84,11 +89,17 @@ for _, scene in scenes do
 			for i = 0, s.Beams * 4 do
 				table.insert(
 					fade,
-					V.strandFade(i / (s.Beams * 4)) * (1 - s.Transparency) * spec.Strength * V.strong(spec, shape, c)
+					V.strandFade(i / (s.Beams * 4))
+						* (1 - s.Transparency)
+						* spec.Strength
+						* V.strong(spec, shape, c)
+						* V.part(s.Name, shape, c)
 				)
 			end
 			table.insert(strands, {
 				Name = s.Name,
+				There = V.there(s.Name, shape, c),
+				Behind = V.behind(s.Name, V.Hug, shape),
 				Joints = joints,
 				Fade = fade,
 				Color = rgb(s.Color),
@@ -108,9 +119,14 @@ for _, scene in scenes do
 		Layers = layers,
 		Frames = frames,
 		Light = if spec.Light
-			then { Range = spec.Light.Range, Bright = spec.Light.Bright, Color = rgb(spec.Light.Color) }
+			then {
+				Range = spec.Light.Range,
+				Bright = spec.Light.Bright * V.part("Light", shape, c),
+				Color = rgb(spec.Light.Color),
+			}
 			else nil,
 		Pulse = if spec.Pulse then spec.Pulse.Every else nil,
+		Small = small,
 		Draws = { V.draws(spec, 1), V.draws(spec, 2), V.draws(spec, 3) },
 		Alive = { V.alive(spec, 1), V.alive(spec, 2), V.alive(spec, 3) },
 	})

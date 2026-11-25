@@ -1105,7 +1105,8 @@ local function reconcile()
 	local want = wanted()
 	local kind = kindNow()
 	for model, l in live do
-		if want[model] ~= l.Tier or not model.Parent or l.Kind ~= kind then
+		local small = if l.Around then l.Around.Small else Config.Aura.Small
+		if want[model] ~= l.Tier or not model.Parent or l.Kind ~= kind or small ~= Config.Aura.Small then
 			drop(model)
 		end
 	end

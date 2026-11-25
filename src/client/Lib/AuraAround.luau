@@ -2,7 +2,8 @@
 -- One 3D aura as Roblox draws it (look 2; Shared/AuraVolume has every number; docs/design/auras.md): its emitters, each
 -- with an unseen part that is its place round the wearer, its ribbons (Beams along a spiral of Attachments that go round),
 -- and its light. All of it stands in one frame, the feet or the fish: nothing is turned to the camera as a whole and nothing
--- is pushed behind the wearer, so the body hides what is behind it and what is in front is in front.
+-- is pushed behind the wearer, so the body hides what is behind it and what is in front is in front. (But a smaller version,
+-- Config.Aura.Small, riding: its pieces are drawn behind the rider, so that they never cover them.)
 -- AuraController places the parts (one BulkMoveTo for every aura) and says what happens: step (every frame), flare, and the
 -- moment it was put on.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,6 +31,10 @@ export type Around = {
 	RiddenAt: CFrame?, -- and where, in the wearer's own frame
 	Grow: number, -- as the pictures are written,
 	Own: boolean,
+	Small: number, -- Config.Aura.Small as it was made (the controller makes it again when it is turned)
+	Ride: number, -- a smaller version's way onto the ride, as it is written,
+	Rode: boolean, -- and whether the ride's pieces are the ones drawn
+	Stood: AuraVolume.Shape?, -- how it stands this frame
 	Seen: number, -- as the fade is written (-1: not yet)
 	Running: boolean, -- its emitters let out
 	Detail: number,
@@ -216,6 +221,10 @@ function AuraAround.build(parent: Instance, tier: number): Around
 		RiddenAt = nil,
 		Grow = -1,
 		Own = false,
+		Small = Config.Aura.Small,
+		Ride = 0,
+		Rode = false,
+		Stood = nil,
 		Seen = -1,
 		Running = false,
 		Detail = 0,
@@ -251,8 +260,16 @@ function AuraAround.drawn(a: Around): (number, number)
 end
 
 local function let(a: Around, key: string)
+	local c = Config.Aura
+	local s = a.Stood
 	for _, p in a.Pieces do
 		local n = (p.Layer :: any)[key]
+		if s and n > 0 and AuraVolume.small(c) then
+			-- (a smaller version: fewer at once, none of a piece it leaves out)
+			n = if AuraVolume.there(p.Layer.Name, s, c)
+				then math.ceil(n * AuraVolume.part(p.Layer.Name, s, c) * AuraVolume.strong(a.Spec, s, c))
+				else 0
+		end
 		if n > 0 and p.There and p.Layer.Keep <= a.Detail then
 			p.Emitter:Emit(n)
 		end
@@ -347,7 +364,7 @@ function AuraAround.step(
 		a.Ridden = stood
 		a.RiddenAt = if a.RiddenAt then a.RiddenAt:Lerp(to, k) else to
 	end
-	local shape = AuraVolume.foot(spec)
+	local shape = AuraVolume.foot(spec, c)
 	local at = feet
 	if a.Sat > 0 and a.Ridden and a.RiddenAt then
 		local k = a.Sat * a.Sat * (3 - 2 * a.Sat)
@@ -370,23 +387,30 @@ function AuraAround.step(
 		shape.Height *= big
 	end
 	local frame = at * CFrame.new(shape.At)
+	a.Stood = shape
+	local rode = shape.Ride >= 0.5
+	local way = math.floor(shape.Ride * 10 + 0.5) / 10
+	local onto = a.Ride ~= way
+	a.Ride = way
 
 	-- what is drawn of it
 	local started = not a.Running
-	if started or a.Detail ~= detail then
+	if started or a.Detail ~= detail or a.Rode ~= rode then
 		a.Running = true
 		a.Detail = detail
+		a.Rode = rode
 		for _, p in a.Pieces do
-			p.Emitter.Enabled = p.There and p.Layer.Keep <= detail
+			p.Emitter.Enabled = p.There and p.Layer.Keep <= detail and AuraVolume.there(p.Layer.Name, shape, c)
 		end
 		for _, b in a.Bands do
 			for _, beam in b.Beams do
-				beam.Enabled = b.Strand.Keep <= detail
+				beam.Enabled = b.Strand.Keep <= detail and AuraVolume.there(b.Strand.Name, shape, c)
 			end
 		end
 		a.Grow = -1
 	end
-	if math.abs(a.Grow - shape.Grow) > 0.06 or a.Own ~= shape.Own then
+	local fine = if AuraVolume.small(c) then math.min(shape.Grow, 1) else 1 -- (a smaller version's are finer steps)
+	if math.abs(a.Grow - shape.Grow) > 0.06 * fine or a.Own ~= shape.Own or onto then
 		a.Grow = shape.Grow
 		a.Own = shape.Own
 		for _, p in a.Pieces do
@@ -394,23 +418,30 @@ function AuraAround.step(
 			p.Emitter.Size = scaled(p.Layer.Size, shape.Grow, p.Layer.Jitter)
 			p.Emitter.Acceleration = Vector3.new(0, p.Layer.Accel * shape.Grow, 0)
 			p.Emitter.Speed = NumberRange.new(p.Layer.Speed[1] * shape.Grow, p.Layer.Speed[2] * shape.Grow)
+			p.Emitter.ZOffset = -c.Behind * AuraVolume.behind(p.Layer.Name, p.Layer.Wide, shape)
+		end
+		for _, b in a.Bands do
+			for _, beam in b.Beams do
+				beam.ZOffset = -c.Behind * AuraVolume.behind(b.Strand.Name, AuraVolume.Hug, shape)
+			end
 		end
 	end
 	local strong = AuraVolume.strong(spec, shape, c)
 	local now = math.max(AuraVolume.step(seen * strong), 1 / AuraVolume.Steps)
-	if now ~= a.Seen then
+	if now ~= a.Seen or onto then
 		a.Seen = now
 		local strength = now * spec.Strength
 		for _, p in a.Pieces do
-			p.Emitter.Transparency = faded(p.Layer.Fade, strength)
+			p.Emitter.Transparency = faded(p.Layer.Fade, strength * AuraVolume.part(p.Layer.Name, shape, c))
 		end
 		for _, b in a.Bands do
 			local s = b.Strand
+			local solid = strength * AuraVolume.part(s.Name, shape, c)
 			for i, beam in b.Beams do
 				local list = {}
 				for _, k in TIMES do
 					local f = AuraVolume.strandFade((i - 1 + k) / s.Beams)
-					table.insert(list, NumberSequenceKeypoint.new(k, 1 - f * (1 - s.Transparency) * strength))
+					table.insert(list, NumberSequenceKeypoint.new(k, 1 - f * (1 - s.Transparency) * solid))
 				end
 				beam.Transparency = NumberSequence.new(list)
 			end
@@ -468,9 +499,11 @@ function AuraAround.step(
 	local light = a.Light
 	local l = spec.Light
 	if light and l then
+		local share = AuraVolume.part("Light", shape, c)
+		lit = lit and share > 0
 		light.Enabled = lit
 		if lit then
-			light.Brightness = l.Bright * bright * seen
+			light.Brightness = l.Bright * bright * seen * share
 			light.Range = math.min(l.Range * shape.Grow, 45)
 			place(a.Lamp, frame * CFrame.new(0, math.min(shape.Height * 0.3, 3), 0))
 		end
@@ -489,7 +522,12 @@ function AuraAround.step(
 	if n ~= a.PulseN then
 		a.PulseN = n
 		for _, p in a.Pieces do
-			if p.Layer.Name == "Shock" and p.There and p.Layer.Keep <= detail then
+			if
+				p.Layer.Name == "Shock"
+				and p.There
+				and p.Layer.Keep <= detail
+				and AuraVolume.there("Shock", shape, c)
+			then
 				p.Emitter:Emit(1)
 			end
 		end

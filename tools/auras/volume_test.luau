@@ -334,7 +334,14 @@ for _, spec in specs do
 end
 ok("every place is round the wearer, the same on all sides", spread)
 local lib: string = world.find("StarterPlayer.StarterPlayerScripts.Client.Lib.AuraAround").Source
-ok("nothing of it is pushed toward or behind the camera", not string.find(lib, "ZOffset", 1, true))
+local pushed = 0
+for _, id in { "Clownfish", "BlueWhale" } do
+	local at = fish(id, 1, 12, nil)
+	for _, l in specs[12].Layers do
+		pushed += V.behind(l.Name, l.Wide, at) + V.behind(l.Name, l.Wide, shape)
+	end
+end
+ok("nothing of it is pushed toward or behind the camera (Aura.Small 0)", pushed == 0 and c.Small == 0)
 ok(
 	"nothing of it is turned to the camera as a whole",
 	not string.find(lib, "CurrentCamera", 1, true) and not string.find(lib, "toCam", 1, true)
@@ -432,4 +439,133 @@ for _, l in specs[12].Layers do
 	allOfIt = allOfIt and (l.Name == "Shock" or V.rate(l, theirs, 3, c) > 0)
 end
 ok("with EyeCalm 1 nothing of ours stands across our view; theirs is whole", through and allOfIt)
+
+print("Smaller, less apparent (Config.Aura.Small)")
+ok("off in the file, three to choose from: A, B, C", c.Small == 0 and #c.Smalls == 3 and c.Smalls[2].Name == "B")
+local lastOut, lastSolid, lastFoot = {}, {}, {}
+for i, set in c.Smalls do
+	local cc = table.clone(c)
+	cc.Small = i
+	local function riding(tier: number, body: any, at: any, eye: number?): any
+		return V.ride(specs[tier], body, at, eye, cc)
+	end
+	local hugs, alike, grows, cut, seen, less, named = true, true, true, true, true, true, true
+	local far, near, gone, through = true, true, true, true
+	local last: any = nil
+	for tier = 1, 12 do
+		local spec = specs[tier]
+		local low, high = riding(tier, Vector3.new(3, 4, 8), Vector3.new(0, 2, 0), nil), nil
+		for id in Config.FishById do
+			for _, scale in { 1, 3 } do
+				local body = Config.FishById[id].Size * scale
+				local at = Vector3.new(0, body.Y * 0.1 + 2, -body.Z * 0.1)
+				high = riding(tier, body, at, 17.7)
+				alike = alike
+					and high.X == low.X
+					and high.Z == low.Z
+					and high.Height == low.Height
+					and high.Grow == low.Grow
+					and not high.Own
+				hugs = hugs
+					and high.At.X == at.X
+					and high.At.Z == at.Z
+					and math.abs(high.At.Y - (at.Y - V.Saddle + set.Lift)) < 1e-3
+			end
+		end
+		hugs = hugs and low.X >= 2 and low.X <= 3.6 and low.Height <= 4.3
+		local foot0, foot = V.foot(spec), V.foot(spec, cc)
+		less = less
+			and foot.X < foot0.X
+			and foot.Height < foot0.Height
+			and foot.Grow < 1
+			and V.strong(spec, foot, cc) < 1
+			and V.strong(spec, low, cc) < 1
+		local now = { Wide = low.X, High = low.Height, Alive = 0, Wisp = 0, Foot = foot.X, FootHigh = foot.Height }
+		for _, l in spec.Layers do
+			local rate = V.rate(l, low, 3, cc)
+			now.Alive += rate * (l.Life[1] + l.Life[2]) / 2
+			for _, name in { "Pool", "Ring", "Sweeps", "Shock", "Haze", "Pillar" } do
+				-- (what lies on the ground, fills the air or stands as a column is not on the ride)
+				cut = cut and (l.Name ~= name or (rate == 0 and not V.there(l.Name, low, cc)))
+			end
+			if l.Name == "Wisps" then
+				seen = seen and rate >= 18 and V.part("Wisps", low, cc) > 0.8 and V.rate(l, low, 1, cc) >= 9
+				now.Wisp = l.Size[1][2] * low.Grow
+			end
+			named = named and V.there(l.Name, foot, cc)
+			if V.there(l.Name, low, cc) then
+				-- (its near side is drawn behind the rider's middle)
+				near = near and V.behind(l.Name, l.Wide, low) >= low.X * l.Wide + 0.5
+			end
+			far = far and V.behind(l.Name, l.Wide, foot) == 0
+		end
+		cut = cut and V.part("Light", low, cc) == 0
+		for _, s in spec.Strands do
+			for j = 1, s.Beams + 1 do
+				for step = 0, 24 do
+					local p = V.strandAt(s, low, j, step * 0.4, step * 0.3)
+					through = through and math.sqrt(p.X ^ 2 + p.Z ^ 2) <= low.X * V.Hug * 1.06
+					if set.Low[s.Name] then
+						through = through and p.Y <= set.Low[s.Name] * 1.1
+					end
+				end
+			end
+			near = near and (set.Low[s.Name] ~= nil or V.behind(s.Name, V.Hug, low) > low.X * V.Hug)
+		end
+		if last then
+			grows = grows
+				and now.Wide > last.Wide
+				and now.High > last.High
+				and now.Wisp > last.Wisp
+				and now.Alive >= last.Alive * 0.97
+				and now.Foot > last.Foot
+				and now.FootHigh > last.FootHigh
+		end
+		last = now
+		-- half-way onto a fish it is between the two, never past either
+		local half = V.between(foot, low, 0.5)
+		gone = gone and half.Ride == 0.5 and half.Small == set and half.X <= math.max(foot.X, low.X)
+		if i > 1 then
+			less = less
+				and low.X < lastOut[tier]
+				and V.strong(spec, low, cc) < lastSolid[tier]
+				and foot.X < lastFoot[tier]
+		end
+		lastOut[tier], lastSolid[tier], lastFoot[tier] = low.X, V.strong(spec, low, cc), foot.X
+	end
+	local n = set.Name
+	ok(`{n}: riding, round the rider only, the same on every fish and for every eye`, hugs and alike)
+	ok(`{n}: less than it was, standing and riding, and less than the letter before`, less)
+	ok(`{n}: bigger by tier, standing and riding`, grows and last.Alive > 18)
+	ok(`{n}: riding, no ground ring, pool, strokes, shock, haze, pillar or light`, cut)
+	ok(`{n}: riding, tier 1 up is always seen, far away and on a phone too`, seen)
+	ok(`{n}: standing, no tier loses a piece, nothing is pushed behind`, named and far)
+	ok(`{n}: riding, all but the low ribbon is drawn behind the rider`, near)
+	ok(`{n}: riding, the ribbons keep close, the low one under the chest`, through)
+	ok(`{n}: on and off a fish it goes over smoothly`, gone)
+	local known = {}
+	for _, l in specs[12].Layers do
+		known[l.Name] = true
+	end
+	for _, s in specs[12].Strands do
+		known[s.Name] = true
+	end
+	known.Light = true
+	local real = true
+	for _, list in { set.Foot, set.Ride, set.Low } do
+		for name, share in list do
+			real = real and known[name] == true and share >= 0
+		end
+	end
+	ok(`{n}: every piece it names is one there is`, real)
+end
+ok(
+	"turning the switch makes the auras worn again",
+	string.find(controller, "small ~= Config.Aura.Small", 1, true) ~= nil
+)
+ok(
+	"a piece the ride leaves out lets nothing out in a flare, a burst or a pulse",
+	string.find(lib, "AuraVolume.there(p.Layer.Name, s, c)", 1, true) ~= nil
+		and string.find(lib, 'AuraVolume.there("Shock", shape, c)', 1, true) ~= nil
+)
 done()

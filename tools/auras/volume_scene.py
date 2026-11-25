@@ -1,5 +1,5 @@
 # Blender, for tools/auras/volume_shots.py: a grey blocky avatar standing on sand, and sat on a fish in deep water, seen from
-# the front and the side, each with a depth picture. Roblox's (x, y, z) is Blender's (x, -z, y); feet at 0, facing -z.
+# the front and the side, each with a depth picture and masks (the wearer; on the ride also a fish ahead of them). Roblox's (x, y, z) is Blender's (x, -z, y); feet at 0, facing -z.
 # Run: blender -b --python tools/auras/volume_scene.py -- <outdir> <repo> <dump.json>
 import json
 import math
@@ -66,7 +66,10 @@ def avatar(name, seated=False):
 
 
 sets = {}
+figures = {}  # a set's wearer,
+aheads = {}  # and the fish ahead of the rider (their own camera's view only)
 stand = avatar("stand")
+figures["foot"] = [stand, *stand.children_recursive]
 bpy.ops.mesh.primitive_plane_add(size=400, location=(0, 0, 0))
 ground = bpy.context.object
 ground.data.materials.append(SAND)
@@ -101,7 +104,8 @@ for name, m in mounts.items():
     along = 0 if d.x > d.y else 1
     k = m["Body"][2] / d[along]
     holder.scale = (k, k, k)
-    holder.rotation_euler = Euler((0, 0, math.radians(90 if along == 0 else 180)))
+    # (as exported a fish lies along Y, its head toward +Y: Roblox -z, the way the rider looks)
+    holder.rotation_euler = Euler((0, 0, math.radians(90 if along == 0 else 0)))
     bpy.context.view_layer.update()
     lo, hi = bounds()
     holder.location = -(lo + hi) / 2
@@ -110,7 +114,23 @@ for name, m in mounts.items():
     sx, sy, sz = m["Seat"]
     rider.location = (sx, -sz, sy - 3)
     rider.parent = root
+    figures[name] = [rider, *rider.children_recursive]
     sets[name] = root
+# the next fish to hop to, 28 studs ahead of the rider, a little to the left and up
+for name, m in mounts.items():
+    ahead = bpy.data.objects.new(name + "_a", None)
+    scene.collection.objects.link(ahead)
+    for o in sets["Clownfish"].children_recursive:
+        if o.type == "MESH" and o not in figures["Clownfish"]:
+            bpy.context.view_layer.update()
+            c = o.copy()
+            scene.collection.objects.link(c)
+            c.parent = None
+            c.matrix_world = o.matrix_world
+            c.parent = ahead
+    s = m["Seat"]
+    ahead.location = (s[0] - 6, -s[2] + 28, s[1] + 3)
+    aheads[name] = [ahead, *ahead.children_recursive]
 
 world = bpy.data.worlds.new("w")
 scene.world = world
@@ -167,11 +187,16 @@ for name, m in mounts.items():
     VIEWS[f"{name}_front"] = (name, (0, y + 2, m["Seat"][2] * 0.7), 40, 14 + L * 1.05, 10, 38, 1000, 760)
     VIEWS[f"{name}_side"] = (name, (0, y + 2, m["Seat"][2] * 0.7), 90, 14 + L * 1.05, 6, 38, 1000, 760)
     VIEWS[f"{name}_own"] = (name, None, 180, 17.7, 0, 70, 1280, 720)
+    # (another player beside them: 22 studs from the rider, with the game's own lens)
+    VIEWS[f"{name}_other"] = (name, (m["Seat"][0], m["Seat"][1], m["Seat"][2]), 40, 22, 12, 70, 1280, 720)
 meta = {}
 for name, (which, at, yaw, dist, pitch, fov, w, h) in VIEWS.items():
     for k, o in sets.items():
         for c in [o, *o.children_recursive]:
             c.hide_render = k != which
+    for k, o in aheads.items():
+        for c in o:
+            c.hide_render = k != which or at is not None
     if at is None:  # the game's own riding camera: 17 behind the rider, 5 up, at 70 degrees
         s = mounts[which]["Seat"]
         focus = Vector((s[0], -s[2], s[1]))
@@ -207,13 +232,26 @@ for name, (which, at, yaw, dist, pitch, fov, w, h) in VIEWS.items():
     scene.render.image_settings.color_mode = "RGBA"
     scene.render.image_settings.color_depth = "32"
     scene.cycles.samples, scene.cycles.use_denoising = 1, False
-    scene.render.filepath = f"{out}/{name}_depth.exr"
-    bpy.ops.render.render(write_still=True)
+
+    def depth(file):
+        scene.render.filepath = f"{out}/{file}.exr"
+        bpy.ops.render.render(write_still=True)
+        img = bpy.data.images.load(f"{out}/{file}.exr")
+        px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)[::-1]
+        a = px[..., 3]
+        bpy.data.images.remove(img)
+        return np.where(a > 0.5, px[..., 0] / np.maximum(a, 1e-6) * 256, np.inf).astype(np.float32)
+
+    z = depth(f"{name}_depth")
+    np.save(f"{out}/{name}_depth.npy", z)
+    # who is seen where: the pixels whose nearest thing is the wearer (or the fish ahead)
+    for mask, only in (("wearer", figures[which]), ("ahead", aheads.get(which, []) if at is None else [])):
+        if only:
+            for c in scene.objects:
+                if c.type == "MESH":
+                    c.hide_render = c not in only
+            np.save(f"{out}/{name}_{mask}.npy", np.isfinite(z) & (np.abs(depth(f"{name}_{mask}") - z) < 0.02))
     scene.cycles.samples, scene.cycles.use_denoising = 32, True
     scene.render.image_settings.color_mode = "RGB"
-    img = bpy.data.images.load(f"{out}/{name}_depth.exr")
-    px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)[::-1]
-    a = px[..., 3]
-    np.save(f"{out}/{name}_depth.npy", np.where(a > 0.5, px[..., 0] / np.maximum(a, 1e-6) * 256, np.inf).astype(np.float32))
 json.dump(meta, open(f"{out}/views.json", "w"), indent=1)
 print("DONE")

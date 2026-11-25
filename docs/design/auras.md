@@ -22,10 +22,59 @@ Hugo's words, in order:
 - 2026-11-25: "Make auras cooler and bigger through progression, should start off less noticeable and the particle effects
   look bad ngl, make them actually fully animated and feel integrated like in the screenshots i sent(especially ref image 4.
   two players riding on dinos with auras)". (The screenshots are read for their feel only.)
+- 2026-11-25, 18:18, on the sheet below: "make auras less apparent and especially not as big( cover player especially ) when riding on
+  fish, should be way smaller in general when riding a fish."
 
 **State (2026-11-25, later): the 3D look ("Around the body", the next section) is built and on, on the branch `aura-3d`: not
 pushed, not seen in Studio, nothing uploaded.** Draft 4's flame is kept behind `Config.Aura.Look` 1 and draft 2 behind 0. What
 follows the next section is the flame's own note, and true of `Look` 1.
+
+**Waiting on Hugo: A, B or C** ("Smaller, and less apparent", the next section). Until then `Config.Aura.Small` is 0: as built.
+
+## Smaller, and less apparent: pick A, B or C (2026-11-25, evening; `Config.Aura.Small`)
+
+![before, A, B, C](../attachments/auras-3d-2.png)
+
+Offline mock from the game's own numbers, not Studio. [Riding, moving](../attachments/auras-3d-2.mp4): the rows are tiers 1, 6 and 12 from your
+own camera on a big fish, and tier 12 on a small one as another player sees it.
+
+`Config.Aura.Small`, read live: **0** as it was built (off, what is in the file), **1** A small, **2** B smaller, **3** C tiniest (`Config.Aura.Smalls`).
+**B is the one recommended:** A's tier 12 still lies over some of the fish ahead (10 % of it has some aura on it, 1 % is hidden), B's hardly
+(1 %, none hidden), C's not at all, but C drops a ribbon and a serpent, so the top tiers show off least.
+
+- **Riding it is round the rider only,** whatever the fish is: 2.4 to 3.5 studs out from the rider (the arms end at 2) and 2.4 to 4.2 tall, where it was as long and wide as the
+  fish and up to 20. The same from your own camera and for everyone else.
+- **It never covers the rider:** every piece is drawn behind their body (the engine's ZOffset), but the thin low ribbon, which really goes round them
+  at the hips. **What that gives up:** riding, the aura no longer passes in front of the body; standing it still does.
+- **Gone while riding, in all three:** the haze, the pillar, the ground ring, the glow, the sweeps, the shock rings, the light. B and C also leave out the
+  shafts and the spray, C the second ribbon and one of the two serpents.
+- **Still there:** always seen while riding, one design, no tier smaller than the one below, the pieces named above apart each with what it adds (at 12 the crown and the two serpents, one in C).
+- **Standing, a bit less:** weaker and smaller (A 0.8, B 0.66, C 0.55 of its strength; the haze, pillar, ring, glow and light cut most), the crown kept over the head. The fades are unchanged.
+
+| Tier 12 | before | A | B | C |
+|---|---|---|---|---|
+| rider hidden, own camera, small / big fish | 80 % / 1.4 % | 0.23 / 0.30 | 0.09 / 0.11 | 0.04 / 0.05 |
+| rider hidden, another player, small / big fish | 74 % / 23 % | 1.1 / 1.5 | 0.69 / 0.88 | 0.26 / 0.42 |
+| rider with any aura over them, own camera, small / big | 100 % / 38 % | 0.79 / 1.0 | 0.54 / 0.67 | 0.38 / 0.46 |
+| screen with any aura on it, own camera, small / big | 52 % / 43 % | 2.1 / 2.0 | 1.3 / 1.2 | 0.62 / 0.57 |
+| standing: player hidden (mean of 12 moments) | 34 % | 19 % | 7 % | 2 % |
+| **Tier 6**: rider hidden, every view; screen, own camera, small / big | 0 to 1 %; 9.8 / 2.7 | 0; 0.58 / 0.53 | 0; 0.37 / 0.33 | 0; 0.20 / 0.18 |
+| **Tier 1**: rider hidden; screen, own camera, small / big | 0; 0.55 / 0.85 | 0; 0.17 / 0.16 | 0; 0.10 / 0.09 | 0; 0.06 / 0.05 |
+| draw calls riding, tiers 1 / 6 / 12 | 1 / 10 / 23 | 1 / 6 / 17 | 1 / 6 / 15 | 1 / 4 / 10 |
+
+Hidden = half covered or more. Two things to know: **A standing at tier 12 still hides 19 %** of the player (40 % at its worst moment); **tier 1 riding is very
+faint in all three** (`Wisp`'s first number and `Ride.Wisps` make it stronger).
+
+- **In the code:** `AuraVolume.small`, `hug`, `there`, `part`, `behind`, and guarded lines in `AuraAround`; the controller makes the auras again when the switch is turned.
+- **Switch 0 is as it was, proven:** the old and the new `AuraAround` run offline through the same 36 scenes (`tools/auras/volume_same.luau`) write the
+  same file, byte for byte; the sums too (20,685 numbers). The old `volume_test` unchanged: 77 of its 78; the 78th read the source for the word ZOffset and now checks the push is 0 at switch 0.
+  `volume_test` is now 111 checks, all passing; `aura_test` 61 of 61.
+- **Pictures:** no new ones. A, B and C each need the same twelve sheets in `art/ui/aura_volume` (standing uses all twelve). Riding alone uses seven in A (wisp, flame,
+  mote, arc, ribbon, jet, shaft) and five in B and C (wisp, flame, mote, arc, ribbon). The shop's card icons (`art/ui/auras/aura_icons.png`) are untouched.
+- **The first sheet ([auras-3d](../attachments/auras-3d.png)) had its fish facing backwards** (the mock's fault, not the game's): its riding pictures are of the tail end. Fixed in `volume_scene.py`.
+- **To see in Studio:** ZOffset hides the pieces behind the rider (its sign was seen there for the flame), and how much of them a wide fish's back hides with
+  it; a phone; the change of shape getting on and off; tier 1 riding is seen at all in murky water; with the stand-in pictures (no uploads yet) the mock's shapes are rougher.
+- **Made with** `tools/auras/volume_small.py` (`measure`, `sheet`, `frames`).
 
 ## Around the body (2026-11-25, task a1; `Config.Aura.Look` 2)
 

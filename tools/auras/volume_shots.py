@@ -51,6 +51,11 @@ class View:
         self.z = z[yi][:, xi]
         self.pos, self.right, self.up, self.fwd = (np.array(m[k]) for k in ("pos", "right", "up", "fwd"))
         self.deep = m["deep"]
+        self.cover = np.zeros((self.h, self.w), np.float32)  # how much of each pixel the aura hides
+        self.masks = {}
+        for k in ("wearer", "ahead"):
+            if os.path.exists(f"{folder}/{name}_{k}.npy"):
+                self.masks[k] = np.load(f"{folder}/{name}_{k}.npy")[yi][:, xi]
 
     def project(self, p):
         d = p - self.pos
@@ -68,15 +73,16 @@ class View:
         k = np.clip(1 - d / reach, 0, 1) ** 2 * bright * 0.4
         self.img = self.img + self.img * k[..., None] * np.array(color)
 
-    def quad(self, pts, uv, tex, color, alphas, emission):
+    def quad(self, pts, uv, tex, color, alphas, emission, behind=0.0):
         """pts: 4 corners in order round; uv: theirs in the picture (pixels); alphas: theirs."""
         x, y, z = self.project(pts)
         if z.min() < 0.3:
             return
         for tri in ((0, 1, 2), (0, 2, 3)):
-            self.tri(x[list(tri)], y[list(tri)], z[list(tri)], uv[list(tri)], tex, color, alphas[list(tri)], emission)
+            self.tri(x[list(tri)], y[list(tri)], z[list(tri)], uv[list(tri)], tex, color, alphas[list(tri)], emission,
+                     behind)
 
-    def tri(self, x, y, z, uv, tex, color, al, emission):
+    def tri(self, x, y, z, uv, tex, color, al, emission, behind=0.0):
         x0, x1 = int(max(np.floor(x.min()), 0)), int(min(np.ceil(x.max()) + 1, self.w))
         y0, y1 = int(max(np.floor(y.min()), 0)), int(min(np.ceil(y.max()) + 1, self.h))
         if x0 >= x1 or y0 >= y1:
@@ -94,7 +100,7 @@ class View:
             return
         iz = b0 / z[0] + b1 / z[1] + b2 / z[2]
         pz = 1 / np.maximum(iz, 1e-6)
-        inside &= pz < self.z[y0:y1, x0:x1]
+        inside &= pz + behind < self.z[y0:y1, x0:x1]
         u = (b0 * uv[0, 0] / z[0] + b1 * uv[1, 0] / z[1] + b2 * uv[2, 0] / z[2]) * pz
         v = (b0 * uv[0, 1] / z[0] + b1 * uv[1, 1] / z[1] + b2 * uv[2, 1] / z[2]) * pz
         th, tw = tex.shape
@@ -105,6 +111,8 @@ class View:
             tex[(iv + 1) % th, iu % tw] * (1 - du) + tex[(iv + 1) % th, (iu + 1) % tw] * du) * dv
         a = t * (b0 * al[0] + b1 * al[1] + b2 * al[2]) * inside
         a = np.clip(a, 0, 1)[..., None]
+        hid = self.cover[y0:y1, x0:x1]
+        self.cover[y0:y1, x0:x1] = 1 - (1 - hid) * (1 - a[..., 0])
         dst = self.img[y0:y1, x0:x1]
         self.img[y0:y1, x0:x1] = color * a + dst * (1 - a * (1 - emission))
 
@@ -121,7 +129,7 @@ def particles(scene, frame, seed):
     long = abs(scene["Shape"]["X"] - scene["Shape"]["Z"]) >= 0.4
     for li, l in enumerate(scene["Layers"]):
         rate = 1 / scene["Pulse"] if l["Name"] == "Shock" else l["Rate"]
-        if rate <= 0:
+        if rate <= 0 or not l["There"]:
             continue
         # (each particle its own luck, by its number: the same one in every picture it is alive in)
         for i in range(int((T - l["Life"][1]) * rate) - 1, int(T * rate) + 1):
@@ -161,7 +169,7 @@ def particles(scene, frame, seed):
 
                 p, vel = turn(p), turn(vel)
             size = seq(l["Size"], k) * grow * (1 + l["Jitter"] * rng.uniform(-1, 1))
-            alpha = (1 - seq(l["Fade"], k)) * scene["Strength"]
+            alpha = (1 - seq(l["Fade"], k)) * scene["Strength"] * l["Part"]
             col = np.array(l["Color"]) * (1 - k) + np.array(l["Color2"]) * k
             rot = (rng.random() * 2 * np.pi if l["AnyTurn"] else 0) + np.radians(l["Turn"]) * rng.uniform(-1, 1) * age
             total = l["Grid"] ** 2
@@ -172,7 +180,8 @@ def particles(scene, frame, seed):
             else:
                 f = int(rng.integers(total))
             out.append({"p": at + p + np.array([0, l["Up"], 0]), "vel": vel, "size": size, "alpha": alpha,
-                        "col": np.clip(col * l["Bright"], 0, 1.6), "rot": rot, "frame": f if total > 1 else 0, "l": l})
+                        "col": np.clip(col * l["Bright"], 0, 1.6), "rot": rot, "frame": f if total > 1 else 0, "l": l,
+                        "behind": l["Behind"]})
     return out
 
 
@@ -181,7 +190,7 @@ def render(folder, scene, view, scale=1.5, frame=0, seed=1):
     fr = scene["Frames"][frame]
     at = np.array(scene["Shape"]["At"])
     L = scene.get("Light")
-    if L:
+    if L and L["Bright"] > 0:
         h = min(scene["Shape"]["Height"] * 0.3, 3)
         V.lit(at + np.array([0, h, 0]), L["Color"], min(L["Range"] * scene["Shape"]["Grow"], 45),
               L["Bright"] * fr["Bright"])
@@ -210,10 +219,13 @@ def render(folder, scene, view, scale=1.5, frame=0, seed=1):
         row, col = divmod(p["frame"], l["Grid"])
         cell = tex[row * n:(row + 1) * n, col * n:(col + 1) * n]
         uv = np.array([[0.5, 0.5], [n - 0.5, 0.5], [n - 0.5, n - 0.5], [0.5, n - 0.5]])
-        jobs.append(((p["p"] - V.pos) @ V.fwd, pts, uv, cell, p["col"], np.full(4, p["alpha"]), l["Emission"]))
+        jobs.append(((p["p"] - V.pos) @ V.fwd, pts, uv, cell, p["col"], np.full(4, p["alpha"]), l["Emission"],
+                     p["behind"]))
     tex = texture("Ribbon")
     th, tw = tex.shape
     for s in fr["Strands"]:
+        if not s["There"]:
+            continue
         J = s["Joints"]
         n = len(J) - 1
         line, wid, fade = [], [], []
@@ -240,7 +252,7 @@ def render(folder, scene, view, scale=1.5, frame=0, seed=1):
             uv = np.array([[0.5, v0], [tw - 0.5, v0], [tw - 0.5, v1], [0.5, v1]])
             jobs.append((((line[j] + line[j + 1]) / 2 - V.pos) @ V.fwd, pts, uv, tex,
                          np.clip((np.array(s["Color"]) + (np.array(s["Head"]) - np.array(s["Color"])) * (j / (len(line) - 1)) ** 2) * fr["Bright"], 0, 1.6),
-                         np.array([fade[j], fade[j], fade[j + 1], fade[j + 1]]), s["Emission"]))
+                         np.array([fade[j], fade[j], fade[j + 1], fade[j + 1]]), s["Emission"], s["Behind"]))
     for job in sorted(jobs, key=lambda x: -x[0]):
         V.quad(*job[1:])
     return V
@@ -312,7 +324,7 @@ def main():
             where.append((c * rw, y + j * rh, f"riding, {tier} {names[tier - 1]}"))
     oh = int(rw * 9 / 16)
     own = [("HammerheadShark", 1, "own"), ("HammerheadShark", 6, "own"), ("HammerheadShark", 12, "own"),
-           ("Clownfish", 12, "own"), ("BlueWhale", 12, "own"), ("HammerheadShark", 12, "calm")]
+           ("Clownfish", 12, "own"), ("Livyatan", 12, "own"), ("HammerheadShark", 12, "calm")]
     for i, (nm, tier, how) in enumerate(own):
         jobs.append((folder, scenes[f"{nm}{tier}{how}"], f"{nm}_own", rw, oh, 0))
         where.append((i % 3 * rw, y + 2 * rh + i // 3 * oh,
