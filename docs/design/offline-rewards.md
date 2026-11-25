@@ -8,7 +8,16 @@ its order are taken; the look is our dock windows' own, the chest is ours (`art/
 real phone, nothing uploaded. **In the live game it does nothing yet, because saving is off:** nothing says when a player left.
 To turn it off for good: `Config.Offline.On` 0 (what is owed already stays in the save).
 
-![the window on a PC and a phone, and the small Claim after the X, drawn offline from the game's own code](../attachments/offline-window.png)
+**The layout (2026-11-25, NULLROOM o2):** Hugo, on the first window ([its picture](../attachments/offline-window.png)): "fix
+the chest to fit the original reference image i pasted better layout and ui wise". Now it is laid out as the reference. Wide
+(1.6 : 1); chest, title, X along a header with the sheen; "OFFLINE EARNINGS:"; no well, the dock shows faintly through the
+body; a big chest left of the middle with the gold amount over its lower right; the buttons in one row. On a screen less
+than 550 px wide (a phone upright) it is a second shape, 1.2 : 1, the same places in bigger points. The hours line stays, small, under the
+heading (a refusal is said there). The X and Claim are 44 px or more from 360 px wide up. Our own colours, font, studs, buttons, chest.
+
+**Open, Hugo's: which chest** (A, B or C, `art/ui/offline/options`; `chest.png` is still the first one).
+
+![the reference, the window on a PC and phones, the three chests, drawn offline from the game's own code](../attachments/offline-window-2.png)
 
 ## What it does
 - **On joining**, after at least 5 minutes away: coins = what the equipped fish earned a second when the player left, x the
@@ -19,7 +28,8 @@ To turn it off for good: `Config.Offline.On` 0 (what is owed already stays in th
   phone), and opens the window again. Not claimed at all: it is saved, the next absence is added to it, and the window comes
   up again at the next join. It is never lost, and never runs out.
 - **Claim x3 for Robux** is in the reference and is not built: it would be a paid product and nobody has asked for it. There
-  is no second button.
+  is no second button, but the row has room: a second one in it and `OfflinePanel.share(row)` make two of equal width
+  (checked). **Open, Hugo's: Claim x3 for Robux, yes or no.**
 
 ## The numbers: all DRAFTS, for the tuning chat (`Config.Offline`)
 | Number | Draft | What it is |
@@ -68,10 +78,9 @@ To turn it off for good: `Config.Offline.On` 0 (what is owed already stays in th
   (`tools/offline/servers.luau`): the cap, time backwards, no fish, stored fish, double claims, the X and adding up, a lost answer,
   leaving in the moment of a claim, a crash, the store down, two servers with and without messages, odd and old saves, the switch, saving
   off. The tank, the other services and the players are stand-ins. Five breaks put in on purpose are each caught.
-- `lune run tools/offline/panel_test.luau /tmp/place.rbxl`: 67 checks, the real window and controller with the real service.
-- `python tools/offline/picture.py`: both of those trees as the picture above.
+- `lune run tools/offline/panel_test.luau /tmp/place.rbxl`: 184 checks, the real window and controller with the real service.
+- `python tools/offline/picture.py`: those trees as the picture above.
 
 ## Open
 - The numbers (the tuning chat). Whether the window should also say the cap ("8 h at most").
 - The Index keeps no save part of its own (as on main): with saving on, its rewards could be claimed again each session.
-- The X is the windows' shared one: 36 px on a phone 375 wide, under the 44 a thumb likes.

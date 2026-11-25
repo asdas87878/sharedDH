@@ -2,7 +2,8 @@
 -- UI.HubButtons, UI.StatRows, UI.Shop, UI.Kit and Config on one side and the real OfflineService on the other, joined by a
 -- stand-in for the remote, with stand-ins for Roblox's GUI (tools/index/gui.luau), the animations, the tank and the client's
 -- other pieces. It checks when the window shows and when it waits, the X and the small Claim, the claim (paid once, its
--- answer, a lost answer, a refusal), that there is no second button, and the sizes on a PC and phones.
+-- answer, a lost answer, a refusal), that there is no second button (and that one would fit: OfflinePanel.share), and the
+-- layout (the reference's, o2) and the sizes on a PC and phones.
 -- It cannot see the window: a second argument writes each state's tree out for tools/offline/picture.py.
 -- usage: rojo build -o /tmp/place.rbxl && lune run tools/offline/panel_test.luau /tmp/place.rbxl [dump folder]
 local fs = require("@lune/fs")
@@ -240,6 +241,23 @@ local function open(opts: any): any
 		end
 		return at
 	end
+	-- where a thing in the window is, in the window's points from its top left corner: { left, top, wide, high } (through
+	-- UDim2 sizes, places and anchors; not for what a list lays out)
+	function g.rect(gui_: any): { number }
+		if gui_.Name == "Window" then
+			return { 0, 0, gui_.Size.X.Offset, gui_.Size.Y.Offset }
+		end
+		local up = g.rect(gui_.Parent)
+		local size, at, anchor = gui_.Size, gui_.Position, gui_.AnchorPoint
+		local w = size.X.Scale * up[3] + size.X.Offset
+		local h = size.Y.Scale * up[4] + size.Y.Offset
+		return {
+			up[1] + at.X.Scale * up[3] + at.X.Offset - anchor.X * w,
+			up[2] + at.Y.Scale * up[4] + at.Y.Offset - anchor.Y * h,
+			w,
+			h,
+		}
+	end
 	function g.text(...: string): string
 		local label = g.find(...)
 		return if label then label.Text else "(none)"
@@ -349,9 +367,9 @@ do
 	ok("then it opens by itself", g.Panel.isOpen() and g.Shop.Page == "Offline" and g.dims[1] == true)
 	ok("no small Claim while it is open", not g.chipOn())
 	ok("the title", g.text("Header", "Title") == "Welcome back!", g.text("Header", "Title"))
-	ok("what it is", g.text("Body", "Offline") == "OFFLINE EARNINGS")
+	ok("what it is", g.text("Body", "Offline") == "OFFLINE EARNINGS:")
 	ok("how long", g.text("Hours") == "Your tank worked 3 h 12 min without you", g.text("Hours"))
-	ok("how much: the server's own", g.text("Well", "Amount") == g.Shop.cash(57600), g.text("Well", "Amount"))
+	ok("how much: the server's own", g.text("Body", "Amount") == g.Shop.cash(57600), g.text("Body", "Amount"))
 	local names = buttons(g)
 	ok(
 		"two buttons and no more: Claim and the X",
@@ -360,7 +378,7 @@ do
 	)
 	ok(
 		"live, the chest not uploaded: the cash picture",
-		string.find(g.find("Well", "Chest").Image, "119031387165673") ~= nil
+		string.find(g.find("Body", "Chest").Image, "119031387165673") ~= nil
 	)
 
 	print("claimed")
@@ -469,11 +487,54 @@ do
 	)
 	g.back(1, 3600, 9.99e17)
 	g.pass(3)
-	local amount = g.find("Well", "Amount")
+	-- the room right of where the amount starts, whatever the amount says, in both shapes
+	local cash = g.Shop.cash
+	for _, screen in { { 1280, 720, false }, { 375, 812, true }, { 320, 568, true } } :: { any } do
+		g.screen(screen[1], screen[2], screen[3])
+		g.Shop.go(nil)
+		g.Shop.go("Offline")
+		for _, words in { "", "$5", "$364.2M", "$99.9Qa", "$123.456Qa", "$1,234,567,890,123" } do
+			g.Shop.cash = if words == ""
+				then cash
+				else function()
+					return words
+				end
+			g.Panel.paint()
+			local amount = g.find("Body", "Amount")
+			local room = g.rect(g.find("Group"))[3] - g.rect(g.find("Slot"))[3]
+			local wide = #amount.Text * amount.TextSize * 0.6
+			ok(
+				`{screen[1]} wide: {amount.Text} fits beside the chest`,
+				wide <= room and amount.TextSize >= 20,
+				`{wide} of {room} at {amount.TextSize}`
+			)
+		end
+		g.Shop.cash = cash
+		g.Panel.paint()
+	end
+end
+
+----------------------------------------------------------------------------------------------------------------------
+print("room for a second button (none is built)")
+do
+	local g = open({})
+	g.back(10, 3600)
+	g.pass(3)
+	local row = g.find("Row")
+	local whole = g.rect(row)
+	local one = g.rect(g.find("Body", "Claim"))
+	ok("Claim has the whole row", one[1] == whole[1] and one[3] == whole[3] and one[4] == whole[4])
+	local two = g.gui.make("TextButton", row)
+	two.Name = "Second"
+	two.LayoutOrder = 1
+	g.Panel.share(row)
+	local a, b = g.rect(two), g.rect(g.find("Body", "Claim"))
+	ok("two are equally wide and as high", a[3] == b[3] and a[4] == b[4] and a[4] == whole[4], `{a[3]} {b[3]}`)
 	ok(
-		"a huge amount fits its line",
-		#amount.Text * amount.TextSize * 0.62 <= 450,
-		`{amount.Text} at {amount.TextSize}`
+		"from edge to edge of the row, with one gap",
+		math.abs(a[1] - whole[1]) < 0.01
+			and math.abs(b[1] + b[3] - whole[1] - whole[3]) < 0.01
+			and math.abs(b[1] - a[1] - a[3] - 20) < 0.01
 	)
 end
 
@@ -481,24 +542,87 @@ end
 print("sizes")
 for _, s in
 	{
-		{ Name = "pc1080", W = 1920, H = 1080, Touch = false, Deals = 57600 },
-		{ Name = "pc720", W = 1280, H = 720, Touch = false, Deals = 57600 },
-		{ Name = "phone", W = 375, H = 812, Touch = true, Deals = 57600 },
-		{ Name = "phone-side", W = 812, H = 375, Touch = true, Deals = 57600 },
+		{ Name = "pc1080", W = 1920, H = 1080, Touch = false },
+		{ Name = "pc720", W = 1280, H = 720, Touch = false, Owed = 364.2e6 - 57600 },
+		{ Name = "pc-long", W = 1280, H = 720, Touch = false, Owed = 9.99e17 },
+		{ Name = "tablet", W = 768, H = 1024, Touch = true },
+		{ Name = "phone", W = 375, H = 812, Touch = true },
+		{ Name = "phone-long", W = 375, H = 812, Touch = true, Owed = 9.99e17 },
+		{ Name = "phone-side", W = 812, H = 375, Touch = true },
+		{ Name = "small", W = 360, H = 640, Touch = true },
+		{ Name = "small-side", W = 640, H = 360, Touch = true },
 	} :: { any }
 do
 	local g = open({ Chest = "rbxassetid://777000777" })
 	g.screen(s.W, s.H, s.Touch)
-	g.back(10, 3 * 3600 + 12 * 60)
+	g.back(10, 3 * 3600 + 12 * 60, s.Owed)
 	g.pass(3)
 	local k = g.find("Root"):FindFirstChildOfClass("UIScale").Scale
 	local frame = g.find("Root", "Window")
 	local wide, high = frame.Size.X.Offset * k, frame.Size.Y.Offset * k
 	ok(`{s.Name}: the window is on the screen`, wide <= s.W and high <= s.H, `{wide} x {high}`)
-	local claim = g.find("Body", "Claim").Size.Y.Offset * k
-	local close = g.find("Header", "Close").Size.Y.Offset * k
+	local claim = g.rect(g.find("Body", "Claim"))[4] * k
+	local close = g.rect(g.find("Header", "Close"))
 	ok(`{s.Name}: CLAIM is at least 44 px high`, claim >= 44, claim)
-	print(string.format("        %s: window %.0f x %.0f, CLAIM %.1f high, X %.1f", s.Name, wide, high, claim, close))
+	ok(`{s.Name}: the X is at least 44 px each way`, math.min(close[3], close[4]) * k >= 44, close[3] * k)
+	local least = math.huge
+	for _, d in g.window():GetDescendants() do
+		if d.ClassName == "TextLabel" and d.Text ~= "" then
+			least = math.min(least, d.TextSize * k)
+		end
+	end
+	ok(`{s.Name}: no words smaller than 12 px`, least >= 12, least)
+	print(
+		string.format(
+			"        %s: window %.0f x %.0f (%.2f : 1), CLAIM %.1f high, X %.1f, least letters %.1f",
+			s.Name,
+			wide,
+			high,
+			wide / high,
+			claim,
+			close[3] * k,
+			least
+		)
+	)
+	-- the reference's layout
+	local ratio = wide / high
+	ok(`{s.Name}: the shape`, if s.W < 550 then ratio > 1.15 and ratio < 1.35 else math.abs(ratio - 1.6) < 0.02, ratio)
+	local whole, header = g.rect(frame), g.rect(g.find("Root", "Header"))
+	local icon, title = g.rect(g.find("Header", "Chest")), g.rect(g.find("Header", "Title"))
+	local xAlign = g.find("Header", "Title").TextXAlignment
+	ok(
+		`{s.Name}: the chest, the title right after it, the X at the far right, in the header`,
+		icon[1] < 20
+			and title[1] >= icon[1] + icon[3]
+			and title[1] < icon[1] + icon[3] + 14
+			and xAlign == Enum.TextXAlignment.Left
+			and title[1] + title[3] <= close[1]
+			and close[1] + close[3] <= header[1] + header[3]
+			and close[2] >= header[2]
+			and close[2] + close[4] <= header[2] + header[4]
+	)
+	ok(
+		`{s.Name}: the sheen, a see-through body, no well`,
+		g.find("Header", "Gloss") ~= nil
+			and g.find("Inner").BackgroundTransparency > 0.1
+			and g.find("Face").BackgroundTransparency == 1
+			and not g.find("Shadow").Visible
+			and g.find("Well") == nil
+	)
+	local heading, line = g.rect(g.find("Body", "Offline")), g.rect(g.find("Hours"))
+	local group, row = g.rect(g.find("Group")), g.rect(g.find("Row"))
+	ok(
+		`{s.Name}: heading, hours, chest, buttons, one under the other`,
+		heading[2] >= header[2] + header[4]
+			and line[2] >= heading[2] + heading[4]
+			and group[2] >= line[2] + line[4] - 0.05 * group[4]
+			and group[2] + group[4] <= row[2] + 0.05 * group[4]
+	)
+	local middle = whole[3] / 2
+	ok(`{s.Name}: the heading in the middle`, math.abs(heading[1] + heading[3] / 2 - middle) < 0.01)
+	local left, right = row[1], whole[3] - row[1] - row[3]
+	local foot = whole[4] - row[2] - row[4]
+	ok(`{s.Name}: even margins round the buttons`, left == right and left == foot, `{left} {right} {foot}`)
 	g.dump(s.Name)
 	g.close()
 	g.pass(0.5)
