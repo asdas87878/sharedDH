@@ -76,7 +76,8 @@ local function came(child: Instance)
 		if (root.Position - camera.CFrame.Position).Magnitude > NEAR then
 			return
 		end
-		if under(child, root) then
+		-- (made in the air as its rider leaps: the submarine shows it as they jump off, Lib/AirHop)
+		if under(child, root) or child:GetAttribute("SubAir") then
 			return
 		end
 		arriving[child] = os.clock()

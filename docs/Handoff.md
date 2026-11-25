@@ -3,6 +3,44 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · The mid-air hop: shorter, a steadier camera, a weaker trail (NULLROOM f1, Hugo's PC; branch `air-hop`, NOT on main, NOT pushed)
+**State:** on `air-hop` after h1's 4075aaa (every commit tagged "(f1)"), worktree `~/Projects/sharedDH-air-hop`. **Checked offline only. Not in Studio, not played.** Hugo's words, the
+before/after table, what fails and the old numbers: [submarine](design/submarine.md), "The air hop".
+- **What Hugo played was not this:** the saved place (2026-11-25 00:11) and Studio's last autosave (02:39) have no `SubAir` or `AirHop`, Studio's logs of both sessions
+  never mention them, and Studio's Rojo serves main. It was main's hop under water. The wishes are in the air hop, the one Hugo keeps.
+- **Shorter** (middle / most, lip is the leap's start): jump to seat 0.45 / 0.60 to **0.38 / 0.45** s, lip to splash 1.47 / 2.06 to **1.16 / 1.71**, lip to run 1.82 / 2.41 to **1.46 / 2.01**.
+  Over the 1.5 s aim: 293 of 11,934 flights, the rearing giants only.
+- **Camera (put right in review 1):** as first handed in it dropped up to 50 studs in one frame in mid-hop: the client and the check had different sums. They now call one function, `SubAir.view`.
+  All 11,934 flights, words back after 0.05 to 0.35 s, 0 fails: coming in 2.25 studs and 5.1 degrees a frame at most, after that 2.0 and 4.4, never back over the water once under. h1's own client on the same check, 1,287
+  flights: 1,132 over the limit coming in, 609 moves, 123 turns. The old line put back fails all 1,287. Any new camera sum goes into `SubAir.view`, never into a copy.
+  On the plain dive it never did (468 of 468, now checked in `fish_dive_check.luau`): no code change there. The likely cause of what Hugo saw is the under-water hop, left as the tag has it.
+- **Trail:** `AirWake` 0.35 from the splash, up to the run's own over 0.8 s of the run; none in the air. The run's own is untouched.
+- **Also better:** fish move over 3 studs 792 to 0, rider in the hull 874 to 146, sub over the rider in the fall 301 to 49, Normal fish touching a lane wall 12 to 0.
+  **A little worse:** Colossal walls 154 to 176 of 1,716 runs, the fish's turn over 12 degrees 0 to 25 (13.0 at most, sub 9).
+- **The switch off is still the tag's:** 2,652 trips byte for byte. Server rules 48 of 48. Typecheck (same 1,515 lines as h1's), stylua and selene clean of new things.
+- **For Studio, in order:** the server's cost of one leap (the word must be back 0.3 s after the leap began; about 145 ms in Lune and 170 for the big fish, as h1's, up to 1,066 on a busy PC), then the feel of the shorter jump
+  (anticipation, arc, landing still read?), the sub's brake after the splash (400 studs/s to 150 in 0.3 s with big fish), the camera over the arch and going under with a Colossal, the trail's amount, the
+  swap frame, two players.
+
+## 2026-11-25 · The mid-air hop onto the sub (NULLROOM h1, Hugo's PC; branch `air-hop`, NOT on main, NOT pushed)
+**State:** built on branch `air-hop` (worktree `~/Projects/sharedDH-air-hop`), main (ede1ff7) and merge-dive-sub-index (03c8f19) merged in with
+no conflicts. **Checked offline only. Not in Studio, not played, nothing uploaded.** Hugo's words, the timeline, the numbers and
+what fails: [submarine](design/submarine.md), "The air hop".
+- **What it is:** on your ride fish with a sub and a land picked, the leap off the lip now has you jump off near its top, the sub
+  flies in from behind, you are on its seat 0.45 s later, it splashes in nose first and the run follows. The fish goes in by itself.
+- **The switch:** `Config.Sub.AirHop` 1 (default). 0 is the hop under water exactly as at the tag `backup-underwater-hop-2026-11-25`
+  (2,652 trips byte for byte the same). Never move that tag. The old hop also runs if a leap gets no air hop.
+- **New:** `Shared/SubAir` (the plan, pure), `Client/Lib/AirHop` (the rider, the camera, the splash), Action `"SubLeap"`, `SubPhase` `Leap` and
+  `Hop` in the air, every `Config.Sub.Air*` number, `tools/subs/air_leaps.luau` and `air_check.luau` (run by `escort_check.luau`).
+  The dive has three small hooks (`DiveController.Began`, `Quiet`, `letGo`); a plain dive is unchanged (468 of 468).
+- **Passes:** 11,934 flights: hull, gate, arch, lane, surface, camera side and behind, no cut, rider continuity, seat, swap pose, 48 server rules.
+- **Fails, small (the table in the note):** the view turns up to 11 degrees in a frame when the sub comes over the arch; rider through the hull 0.2 s at
+  most; hidden behind the sub up to 0.43 s; sub 9 and its fish overlap up to 0.1 s as it comes up; the tall fish splash at up to 2.1 s (asked
+  1.6); 12 runs of rays and turtles touch a lane wall.
+- **For Studio, in order:** the swap frame (two fish or none), the feel, the view over the arch, the sub low over the hub's stands,
+  the splash and sound, two players, the server's cost of a leap (about 100 ms in Lune), lag, give-ups by hand.
+  `tools/studio/fish_sub_check.py` was written for the old hop: use it with `AirHop` 0, or adapt it.
+
 ## 2026-11-25, each land its own fish, and the hook (game code)
 **State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Not played by hand.
 - **The fish by land** (the user: "the lesser fish go into the furthr areas and then the fish from that area dont spawn

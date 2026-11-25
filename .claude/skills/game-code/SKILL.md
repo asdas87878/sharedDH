@@ -57,6 +57,16 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   [submarine](docs/design/submarine.md). One Studio check for all of it:
   `python tools/studio/h4_hub_check.py` (install, play, `run`, `stills`; its head says how). Offline:
   `tools/index/*.luau`, `tools/subs/stand_sub_check.luau`, `tools/keepers/check.py` (lune and python).
+- **The air hop (2026-11-25; NULLROOM h1; `Config.Sub.AirHop` 1, 0 = the hop under water exactly as at tag
+  `backup-underwater-hop-2026-11-25`; checked offline, not seen in Studio):** riding the ride fish with a sub and a land
+  picked, the rider jumps off the leaping fish onto the seat of a sub that flies in. Everything is a pure sum of the trip:
+  `Shared/SubAir` (plan, sub, hop, camera), `SubTrip` (the trip's `Air`, the fish's swim up, `joining`), `SubService`
+  (`leaps`: the client's one message, Action `"SubLeap"`, checked), `Lib/AirHop` + `SubController` (screen), hooks in
+  `DiveController` (`Began`, `Quiet`, `letGo`). Every number `Config.Sub.Air…`. Phases and seconds, limits, the check:
+  [submarine](docs/design/submarine.md), "The air hop". After any change to it run `tools/subs/escort_check.luau` with
+  the leaps and boxes (tools/subs/air_check.luau), and once with `AirHop` 0 against the tag.
+  Made shorter, the camera steadier (one anchor, `SubAir.track`) and the trail weaker the same day (f1); the old numbers are in the note.
+  The client's own camera is `SubAir.view`, which the check runs too: never write its sums a second time.
 - **Auras (2026-11-24; NULLROOM a1; seen in Studio 2026-11-25):** `AuraService` (server: Action "AuraBuy", tier; the next one
   only, on the dock near the stall, `Config.Aura.Prices`; attribute `Aura`; Ride "AuraBought"/"AuraDenied"; multiplies
   `TrainService.gain` only), the flame in `Shared/AuraFlame` (plain sums) and `Lib/AuraBeams`, worn by `AuraController`
