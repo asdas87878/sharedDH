@@ -30,6 +30,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 ## The game
 - [Core loop](docs/design/core-loop.md): the cycle in one page.
 - [Archetypes and speed per fish](docs/design/archetypes.md): every creature's own speed and its passive archetypes (fast, predator, breaker and more), in one table.
+- [Fusing](docs/design/fusing.md): three fish of a kind become one a size bigger, at the Fuse machine (built 2026-11-25, not played).
 - [Riding feel](docs/design/riding-feel.md): the ride, the jump fish to fish and the herd, as built.
 - [The sling](docs/design/sling.md): getting from fish to fish: what was weak, the three fixes on switches, the feel log and the M key (built 2026-11-17); fast fish no longer refuse a hook or drop you off, and the hands-off hook comes when the reference's does, 1.7 s after the jump (2026-11-18).
 - [The long hook](docs/design/long-hook.md): a hook onto a far fish feels far and lands hard: the long shot (the camera), the rush and the thud, the word (built 2026-11-18).

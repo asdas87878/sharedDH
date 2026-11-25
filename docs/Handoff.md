@@ -41,6 +41,29 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
   the level's Oxygen, whole numbers only (an odd one is split 12 and 13). `Config.trainGain` in place of `trainTicks`;
   `RideStyles.Trainer.Every` gone. Seen in Play: 36 gains of +8 in 18 s.
 
+## 2026-11-25 · Hop, texts and fusing on main, full check (NULLROOM z1, Hugo's PC)
+**State:** main 7bfd3a4 held all three; `tools/studio/full_check.py all` all good on it (128 of 128 scripts, 78 of 78 creature data, no errors). [Stills](attachments/z1-hop-texts-fuse.jpg). Place not saved, nothing uploaded.
+- **New checks:** `tools/studio/air_hop_check.py`, `tools/studio/texts_fuse_check.py`. **Traps:** when the main folder pulls a push, Rojo writes main over a worktree's scripts in Edit: `sync_src.py --dry` before each
+  Play. A table through `TestSave` is a copy: read `SaveService.profileOf(player).Data`. A solo `Kick` gave no PlayerRemoving within 0.8 s: `player:Destroy()` does.
+
+## 2026-11-25 · Fusing at the Fuse machine (NULLROOM u1, Hugo's PC)
+**State:** merged onto main and pushed by z1, **seen in Studio** (`tools/studio/texts_fuse_check.py fuse | rings | saved | leave`; not on a phone, not played by hand). Nothing uploaded. Everything:
+[fusing](design/fusing.md). Off: `Config.Fuse.On` 0.
+- **New:** `Shared/Fuse`, `FuseService`, `AquariumService.fuse`, `RideService.fuseCarried`, `UI/FusePanel`, `Config.Fuse`, `tools/fuse/`.
+  **Changed:** "Hands" rows carry the carried key as a fourth value (readers that take three are untouched); `StallController` (the
+  Fuse ring; **a ring you are put down on no longer opens its window, for every stall**), `HubSigns`, `SoundController`, `Net` (comments).
+- **Checked offline:** 164 and 97, none failed; stylua, selene (0 errors, its 3 old warnings), rojo build, types clean in the new files;
+  `index/panel_test` 91 and `auras/aura_test` 61 pass. `index/index_test` fails 3 of 73 (the Shallows' set pay), the same on `ede1ff7` without this.
+- **Studio (z1), all passing:** the ring opens the window and walking off shuts it; refused: earning in the tank, a Colossal, two kinds, one not there, far off, switched off, no coins, another size (with `SameSize` 1), the
+  ride fish, dead, off the dock; nonsense and doubled asks do nothing; five asks in one frame fuse once; the biggest stays and keeps its own colour, gold and rainbow used up are not inherited, a rainbow that stays
+  stays; the tank's count 15 to 13, hands untouched; three pressed in the window make a Big. A ring you are put down on stays shut until off and on, at all five stalls. Save: what is kept is what there is, closed and
+  opened again it comes back; removed from the game in the very frame of a fusing, the save has the one fused fish (and a control with none fused has its three). 53 to 60 frames a second with the window open.
+- **Owed:** a phone, by hand, two players at once (solo playtests only), the real data store (the check uses ProfileStore's mock).
+- **Merging:** tried (no branch changed) against `texts-b1-a3`, `pictures-index-offline`, `offline-rewards`, `air-hop` and `index-look`,
+  one at a time, as committed at 14:50: no conflict in code, only in notes (Handoff, Decisions, ui.md, Code map: keep both sides), and
+  both fuse tests pass on each merged tree. Not tried: all of them together.
+- **For the tuning chat:** with sizes mixed, 9 fish of a kind make a Colossal (by the plain odds 1 in 250 in the wild, not measured). `Fuse.SameSize` 1 closes it.
+
 ## 2026-11-25 · The mid-air hop is on main, seen in Studio (NULLROOM z1, Hugo's PC)
 **State:** `air-hop` merged onto main (no conflicts) and pushed. Seen in Studio with `tools/studio/air_hop_check.py` (its head says how), not played by hand. Place not saved, nothing uploaded.
 - **One number was wrong and the hop never ran in the place:** `Config.Sub.AirArch` **144 to 88**. The lip is 88 studs in front of the dock's spawn (3000, 1, -88); with 144 the server refused every leap
@@ -49,8 +72,9 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
   the jump; one long server frame of 27 to 139 ms in it (the worst: sub 9 with a Colossal); never two fish, never none; no trail in the air, 13 a second from the splash against the run's 36; the camera never back over the
   water; the hands unchanged; kicked at the land as before. Great White, sub 5: jump 0.45, seat 0.86, splash 1.26, run 1.56 s.
 - **No sub, on foot, unequip, death and reset** at 0.2, 0.6 and 1.2 s: all end clean.
-- **To know:** with a Colossal the land camera stands so far back that the DIVE IN sign is in front of it before the leap starts (main does it too; not the hop's). Frames were 33 to 60 a second, the low ones with the PC
-  busy with other work. Two players at once: not run.
+- **To know:** with a Colossal the DIVE IN sign is in front of the camera before the leap and stays over part of it (the rider hidden 0.06 to 0.42 s in). The camera is already behind the sign on the dock and the hop
+  does not change `RideController`, so it starts from the land camera's own place; main without the hop was **not run** to compare. At the splash 2 of 8 Great White grabs were 70 to 80 in 100 white: how long it
+  lasts was not measured. Frames were 33 to 60 a second, the low ones with the PC busy with other work. Two players at once: not run. [Stills](attachments/z1-hop-texts-fuse.jpg).
 
 ## 2026-11-25 · The mid-air hop: shorter, a steadier camera, a weaker trail (NULLROOM f1, Hugo's PC; on main since z1, above)
 **State:** on `air-hop` after h1's 4075aaa (every commit tagged "(f1)"), worktree `~/Projects/sharedDH-air-hop`. **Checked offline only; seen in Studio by z1 (above).** Hugo's words, the
