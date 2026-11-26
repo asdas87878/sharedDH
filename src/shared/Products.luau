@@ -1,10 +1,8 @@
 --!strict
 -- What the Shop sells for Robux (UI review 1, the user, 2026-11-22: the Shop is its own screen, laid out as the
--- reference's: one scrolling list of offers in sections). NONE IS ON SALE YET: no developer product or game pass has
--- been made, and none is made up here, so every Id is 0 and the Shop shows SOON on each. To put a Cash or Oxygen pack on
--- sale: make the developer product on the Roblox site and write its Id here (Products.onSale). Its price
--- is read from Roblox, so it is never other than what is charged. The server gives it (PurchaseService, kept by
--- SaveService); the client only asks Roblox for the prompt. The passes and the other offers have no grant yet.
+-- reference's: one scrolling list of offers in sections). Ids come from Roblox (tools/robux/setup.py). The Shop shows
+-- SOON until an offer has an Id and a server grant (Products.onSale). The client reads the charged price from Roblox
+-- and asks it for the prompt. PurchaseService grants products and checks pass ownership.
 -- The Oxygen and Cash packs' amounts and prices are the fixed ladder (the user, 2026-11-23: "Yes, show all": every pack
 -- shown to everyone, none locked; docs/design/money.md, "Selling"). Price is what to set on the Roblox site.
 --   Gives: what the server gives for it, "Coins" or "Oxygen" (max Oxygen, for good); Amount: how much, a whole number
@@ -73,14 +71,14 @@ Products.Sections = {
 		Rail = "Shop",
 		Offers = {
 			{
-				-- (the user, 2026-11-25: the Great White remodel, +50K Oxygen, +$1M, an hour of x2 for the server; 149)
+				-- The Great White remodel, +50K Oxygen, +$1M and an hour of x2 for the server.
 				Key = "Starter",
 				Name = "Great White Pack",
 				Kind = "Product",
 				Gives = "Pack",
 				Once = true,
 				Id = 0,
-				Price = 149,
+				Price = 49,
 				Pack = { Oxygen = 50_000, Coins = 1_000_000, Fish = { { "GreatWhite", "Colossal", "" } }, Boost = 3600 },
 				Look = "Gold",
 				Fish = "GreatWhite",
@@ -118,7 +116,7 @@ Products.Sections = {
 				Gives = "DoubleOxygen",
 				Line = "x2 Oxygen from your seahorse, for good",
 				Id = 0,
-				Price = 0,
+				Price = 249,
 				Look = "Sea",
 				Picture = "Oxygen",
 			},
