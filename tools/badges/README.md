@@ -15,7 +15,7 @@ The `badges` branch starts with every badge ID at `0` and `Config.Badges.On = 0`
 
 The award service checks Roblox ownership before each award attempt. One worker per player and badge handles the request and keeps confirmed ownership for the session. After three failed attempts the worker waits 60 seconds before trying again. The player can move on once the milestone is earned.
 
-Ordinary dives start tracking in the Shallows. Each later sample must be within the surveyed lane and reachable from the last accepted sample. A badge requires entering the named zone below the surface. Leaving the submarine can start tracking at the trip’s destination when the diver is inside that zone and near the server’s planned drop point during its arrival window.
+Ordinary dives start tracking in the Shallows. Plausible movement preserves continuity across lane edges, gaps between zones, and delayed polls. A badge requires entering the surveyed lane inside the named zone below the surface. A rejected jump leaves the last trusted position in place so waiting at the destination cannot qualify. Leaving the submarine can start tracking at the trip’s destination when the diver is inside that zone and near the server’s planned drop point during its arrival window.
 
 Taming, fusion, and zone milestones are checked through gameplay after activation. Previously completed taming, fusion, and dives have no retroactive grant.
 
@@ -27,7 +27,7 @@ python3 tools/badges/setup.py --dry-run
 
 A plain invocation also prints the offline plan. It reads no API key, performs no HTTP calls, and writes no files.
 
-Run `lune run tools/badges/award_test.luau` from the repo root to check zone boundaries, submarine arrival, award recovery, and deduplication with a mocked Roblox service.
+Run `lune run tools/badges/award_test.luau` from the repo root to check zone boundaries, dive recovery after an off-lane stretch or delayed poll, submarine arrival, and award retries with a mocked Roblox service.
 
 ## Activate later
 

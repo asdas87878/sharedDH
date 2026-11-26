@@ -3,6 +3,13 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-26 · Badge dive tracking recovers at the lane edge (NULLROOM b1, review 2)
+
+On the `badges` branch. Plausible off-lane movement and delayed polls preserve dive tracking. Zone awards still require
+entering the surveyed lane inside the named zone. Waiting after a rejected teleport cannot earn the badge.
+The offline regression covers five seconds just outside the lane, a 400-stud move over a four-second polling gap,
+and a teleport followed by waiting. [Badge notes](../tools/badges/README.md).
+
 ## 2026-11-26 · Six badges prepared (NULLROOM b1, review 1)
 
 - On the unmerged `badges` branch. Six badge pictures, a server award service, and an offline-first creation tool are ready.

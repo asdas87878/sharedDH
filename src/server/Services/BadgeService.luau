@@ -11,7 +11,7 @@ local Zones = require(ReplicatedStorage.Shared.Zones)
 local BadgeService = {}
 
 type Badge = { Key: string, Id: number }
-type DiveSample = { Position: Vector3, Progress: number, At: number }
+type DiveSample = { Position: Vector3, ObservedAt: number, Rejected: boolean }
 type Drop = { Land: number, Position: Vector3, StartsAt: number, EndsAt: number }
 type Session = {
 	Requested: { [number]: boolean },
@@ -127,14 +127,13 @@ local function checkDive(
 		return
 	end
 	local position = root.Position
-	local zone, along = Zones.locate(zones, position)
-	if not zone or inside(position) < 0 then
-		return
-	end
-	local progress = zone.Index - 1 + along
-	local inZone = math.abs(zone.Frame:PointToObjectSpace(position).Z) <= zone.Length / 2
+	local zone = Zones.locate(zones, position)
+	local onLane = zone ~= nil and inside(position) >= 0
+	local inZone = zone ~= nil and math.abs(zone.Frame:PointToObjectSpace(position).Z) <= zone.Length / 2
 	local atDrop = drop
+		and zone
 		and zone.Index == drop.Land
+		and onLane
 		and inZone
 		and now >= drop.StartsAt
 		and (position - drop.Position).Magnitude <= Config.Badges.SubDropRadius
@@ -142,19 +141,24 @@ local function checkDive(
 	if atDrop then
 		session.Drop = nil
 	elseif last then
-		-- In the gap, keep tracking movement but only count a badge once inside its zone. A rejected
-		-- sample never becomes the next baseline, even if the player waits at the new position.
-		local elapsed = math.min(now - last.At, Config.Badges.ZoneEvery * 2)
+		-- Track plausible movement through gaps and outside the lane. Use the actual interval after a
+		-- trusted sample. Once a jump is rejected, the diver must return near the trusted position.
+		local elapsed = now - last.ObservedAt
+		if last.Rejected then
+			elapsed = math.min(elapsed, Config.Badges.ZoneEvery)
+		end
+		last.ObservedAt = now
 		local limit = Config.Badges.ZoneSpeed * elapsed + Config.Jump.GrabRange
-		if math.abs(progress - last.Progress) > 1 or ((position - last.Position) * horizontal).Magnitude > limit then
+		if ((position - last.Position) * horizontal).Magnitude > limit then
+			last.Rejected = true
 			return
 		end
-	elseif zone.Index ~= 1 then
+	elseif not (zone and zone.Index == 1 and onLane) then
 		return
 	end
-	session.LastDive = { Position = position, Progress = progress, At = now }
-	local badge = zoneBadges[zone.Name]
-	if badge and inZone and position.Y <= Config.Oxygen.SurfaceY then
+	session.LastDive = { Position = position, ObservedAt = now, Rejected = false }
+	local badge = zone and zoneBadges[zone.Name]
+	if badge and onLane and inZone and position.Y <= Config.Oxygen.SurfaceY then
 		award(player, badge)
 	end
 end

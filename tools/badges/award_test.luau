@@ -201,20 +201,44 @@ sample("Riding", 0, 0)
 for _ = 1, 4 do
 	sample("Riding", 0, 3000)
 end
-assert(not attempts[twilight], "teleport or waiting at its destination counted")
+sample("Riding", 0, 3000, 10)
+assert(not attempts[twilight], "teleport gained credit by waiting through a polling gap")
 
-for z = 100, 2700, 100 do
-	sample("Riding", 0, z)
+local function testEntry(message, approach)
+	sample("Dock", 0, 0)
+	sample("Riding", 0, 0)
+	nextId += 1
+	badges.Twilight.Id = nextId
+	approach()
+	assert(owned[nextId], message)
+	sample("Riding", 0, 2880)
+	assert(attempts[nextId] == 1, "repeat samples retried a confirmed award")
+	badges.Twilight.Id = twilight
 end
-sample("Riding", 0, 2715)
-sample("Riding", 0, 2720)
-assert(not attempts[twilight], "gap was treated as the zone itself")
-sample("Riding", 600, 2800)
-assert(not attempts[twilight], "position six widths outside the lane counted")
-sample("Riding", 0, 2800)
-assert(owned[twilight], "ordinary entry through the lane was missed")
-sample("Riding", 0, 2820)
-assert(attempts[twilight] == 1, "repeat samples retried a confirmed award")
+
+testEntry("five seconds outside the lane broke dive continuity", function()
+	for z = 25, 2350, 25 do
+		sample("Riding", 0, z)
+	end
+	for z = 2375, 2850, 25 do
+		sample("Riding", 51, z)
+	end
+	assert(not attempts[nextId], "a position just outside the lane counted")
+	sample("Riding", 0, 2875)
+end)
+
+testEntry("400 studs over a four-second polling gap broke dive continuity", function()
+	for z = 25, 2300, 25 do
+		sample("Riding", 0, z)
+	end
+	sample("Riding", 0, 2700, 4)
+	sample("Riding", 0, 2715)
+	sample("Riding", 0, 2720)
+	assert(not attempts[nextId], "gap was treated as the zone itself")
+	sample("Riding", 600, 2800)
+	assert(not attempts[nextId], "position six widths outside the lane counted")
+	sample("Riding", 0, 2800)
+end)
 
 local function beginSub(land, withFish, dropZ)
 	sample("Dock", 0, 0)
