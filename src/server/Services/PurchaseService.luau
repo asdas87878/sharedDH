@@ -1,15 +1,15 @@
 --!strict
 -- What a Robux purchase gives (the user, 2026-11-23). Roblox calls the one ProcessReceipt here for each bought product;
 -- what it gives is Shared/Products' own line for it (Gives, Amount). The server opens prompts for the once-only pack
--- and Claim x3 after saving their reservation. Only a canceled prompt or receipt grant clears the reservation.
+-- and Claim x3 after saving their reservation. Only opened prompts are restored as pending on a new server.
 --   Each receipt is given once: its PurchaseId goes into the player's profile (SaveService) in the same snapshot as what
 --   it gave, and Roblox is told "granted" only when that profile is seen saved. Every other ending (the player gone, no
 --   profile, no wallet yet, the store down) is "not yet": Roblox asks again, here or when they next join.
 --   A pack (Products' Pack) is given whole or not at all, when its three parts of the save are on: checked first, then
 --   the coins and fish into the tank, the Oxygen, the once-only mark and the server's boost, with no yield between.
 --   A pass is kept by Roblox: asked as the player joins (and again if Roblox doesn't answer), and at the purchase.
---   Claim x3 (Products.Triple, Gives "Offline") pays what the server itself has owed, times Amount, into the tank: both
---   parts of the save must be on. With nothing owed it is "not yet", never a purchase for nothing.
+--   Claim x3 (Products.Triple, Gives "Offline") pays the reserved reward or saves a prepaid x3 claim if there is no
+--   matching reservation. Both the tank and offline parts of the save must be on.
 --   Coins need a tank of their own (the wallet): without one nothing is given until they have one.
 -- The remote "Purchase" tells the buyer's machine ("Got", the offer's key, the amount).
 -- Studio's checks: ServerStorage.TestReceipt (a BindableFunction), Invoke(player, offer, purchase id) runs a made-up
@@ -36,16 +36,14 @@ local WAIT_SAVE = 40 -- and for the save after it
 local WAIT_PROMPT_SAVE = 15 -- seconds for a prompt reservation to be saved before opening Roblox's window
 
 -- What an offer gives -> the giving of it (true when given; never yields). Where it is kept: Products.Part
-local GIVES: { [string]: (player: Player, amount: number) -> boolean } = {
-	Coins = function(player, amount)
+local GIVES: { [string]: (player: Player, amount: number, productId: number) -> boolean } = {
+	Coins = function(player, amount, _)
 		return AquariumService.give(player, amount) == true
 	end,
-	Oxygen = function(player, amount)
+	Oxygen = function(player, amount, _)
 		return RideService.grantOxygen(player, amount) == true
 	end,
-	Offline = function(player, amount)
-		return OfflineService.triple(player, amount) == true
-	end,
+	Offline = OfflineService.triple,
 }
 
 -- A bundle: what it needs is looked at before any of it is given
@@ -101,7 +99,8 @@ local function reserved(parts: any, offer: Products.Offer, token: string): boole
 		return parts.Offline ~= nil and parts.Offline.HoldId == token
 	end
 	local pending = parts.Packs and parts.Packs.Pending
-	return pending ~= nil and pending[offer.Key] == token
+	local record = pending and pending[offer.Key]
+	return record ~= nil and record.Token == token
 end
 
 local function openPrompt(player: Player, offer: Products.Offer, token: string): string?
@@ -137,6 +136,16 @@ local function openPrompt(player: Player, offer: Products.Offer, token: string):
 			and reserved(profile.Data.Parts, offer, token)
 			and pcall(MarketplaceService.PromptProductPurchase, MarketplaceService, player, offer.Id)
 		then
+			-- PromptProductPurchase returns before the player can answer. Mark the live prompt and snapshot it
+			-- without yielding so a normal disconnect persists it. A saved preparation alone is safe to discard.
+			if offer.Gives == "Offline" then
+				OfflineService.promptOpened(player, token)
+			else
+				PackService.promptOpened(player, offer.Key, token)
+			end
+			if SaveService.take(player) then
+				profile:Save()
+			end
 			return nil
 		end
 	end
@@ -164,7 +173,12 @@ local function saved(profile: any, id: string): boolean
 	return table.find(profile.LastSavedData.Receipts or {}, id) ~= nil
 end
 
-local function handle(player: Player, offer: Products.Offer, id: string): Enum.ProductPurchaseDecision
+local function handle(
+	player: Player,
+	offer: Products.Offer,
+	id: string,
+	productId: number
+): Enum.ProductPurchaseDecision
 	local give = GIVES[offer.Gives or ""]
 	local amount = offer.Amount or 0
 	if not offer.Pack and (not give or amount <= 0) then
@@ -188,7 +202,7 @@ local function handle(player: Player, offer: Products.Offer, id: string): Enum.P
 		if not SaveService.take(player) then
 			return NOT_YET
 		end
-		local given = if offer.Pack then givePack(player, offer) else (give :: any)(player, amount)
+		local given = if offer.Pack then givePack(player, offer) else (give :: any)(player, amount, productId)
 		if not given then
 			return NOT_YET
 		end
@@ -210,12 +224,17 @@ local function handle(player: Player, offer: Products.Offer, id: string): Enum.P
 	return if saved(profile, id) then GRANTED else NOT_YET
 end
 
-local function receipt(player: Player?, offer: Products.Offer?, id: string): Enum.ProductPurchaseDecision
+local function receipt(
+	player: Player?,
+	offer: Products.Offer?,
+	id: string,
+	productId: number
+): Enum.ProductPurchaseDecision
 	if not player or not offer or busy[id] then
 		return NOT_YET
 	end
 	busy[id] = true
-	local ok, decision = pcall(handle, player, offer, id)
+	local ok, decision = pcall(handle, player, offer, id, productId)
 	busy[id] = nil
 	if not ok then
 		warn(`[PurchaseService] a receipt of {player.Name} failed: {decision}`)
@@ -294,13 +313,13 @@ function PurchaseService.Start()
 		if not offer then
 			warn(`[PurchaseService] a product that is not in Products was bought: {info.ProductId}`)
 		end
-		return receipt(Players:GetPlayerByUserId(info.PlayerId), offer, info.PurchaseId)
+		return receipt(Players:GetPlayerByUserId(info.PlayerId), offer, info.PurchaseId, info.ProductId)
 	end
 	if RunService:IsStudio() then
 		local test = Instance.new("BindableFunction")
 		test.Name = "TestReceipt"
 		test.OnInvoke = function(player: Player, offer: Products.Offer, id: string)
-			return receipt(player, offer, id).Name
+			return receipt(player, offer, id, offer.Id).Name
 		end
 		test.Parent = ServerStorage
 	end

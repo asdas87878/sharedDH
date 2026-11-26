@@ -16,9 +16,11 @@
 --   same reason nothing is claimed unless the save has both parts on (the attributes SavedTank and SavedOffline, which
 --   only the server can set). Not claimed (the X, or they left): it stays owed and is saved as it is.
 --   Claim x3 for Robux (Products.Triple): "Triple" reserves the current reward. PurchaseService saves the reservation
---   before opening Roblox's prompt. Only cancellation or a granted receipt releases another paid prompt. After
+--   before opening Roblox's prompt. A preparation without an opened prompt is dropped on rejoin. An opened prompt
+--   blocks another paid prompt until cancellation or a granted receipt. After
 --   Offline.Hold (or HoldJoin on rejoin), the player can claim the base for free; the receipt then pays the remaining
---   bonus. Earnings added on a later visit are outside the reservation.
+--   bonus. Earnings added on a later visit are outside the reservation. A receipt without a matching reservation
+--   saves a prepaid x3 claim. The player can redeem it when they have an unreserved reward.
 --   With saving off (SaveParts' ON, as now) nothing is ever given back, so nothing is owed and nothing shows.
 --   No tank (more players than plots): nothing is paid or lost; it waits until they have one, as their coins do.
 -- Told to the client by player attributes (nil: nothing is owed): OfflineOwed (whole coins) and OfflineSecs (the seconds
@@ -51,10 +53,13 @@ type Away = {
 	Test: boolean, -- some of it is the Studio test's: claimed with no save
 	AskedAt: number, -- os.clock() of the last ask we listened to
 	HoldId: string?, -- a purchase of Claim x3 was begun and not seen refused or paid
+	HoldProductId: number?,
+	HoldOpened: boolean,
 	HeldOwed: number, -- the part of Owed reserved when the prompt started
 	HeldSecs: number,
 	HeldUntil: number, -- os.clock(): no free claim before it
 	Took: number, -- coins claimed freely while Held, its time run out: a late receipt pays the rest of them
+	Credits: number, -- unreserved paid receipts, redeemed on the player's next x3 claim
 }
 
 local aways: { [Player]: Away } = {}
@@ -88,6 +93,7 @@ local function tell(player: Player, away: Away)
 	player:SetAttribute("OfflineSecs", if on then away.Secs else nil)
 	player:SetAttribute("OfflineOwed", if on then away.Owed else nil)
 	player:SetAttribute("OfflineBuying", if away.HoldId then true else nil)
+	player:SetAttribute("OfflineTripleCredits", if away.Credits > 0 then away.Credits else nil)
 end
 
 -- So long away at that many coins a second, added to what is owed
@@ -110,11 +116,13 @@ function OfflineService.dump(player: Player): { [string]: any }?
 		Rate = rate,
 		Owed = away.Owed,
 		Secs = away.Secs,
-		Held = if away.HoldId then true else nil,
 		HoldId = away.HoldId,
+		HoldProductId = away.HoldProductId,
+		HoldOpened = if away.HoldOpened then true else nil,
 		HeldOwed = if away.HoldId then away.HeldOwed else nil,
 		HeldSecs = if away.HoldId then away.HeldSecs else nil,
 		Took = if away.Took > 0 then away.Took else nil,
+		Credits = if away.Credits > 0 then away.Credits else nil,
 	}
 end
 
@@ -130,16 +138,17 @@ function OfflineService.restore(player: Player, kept: any): boolean
 	end
 	away.Owed = sane(away.Owed + math.floor(sane(kept.Owed)))
 	away.Secs = sane(away.Secs + sane(kept.Secs))
-	if type(kept.HoldId) == "string" or kept.Held == true then
-		away.HoldId = if type(kept.HoldId) == "string" then kept.HoldId else "legacy"
+	away.Credits = math.floor(sane(kept.Credits))
+	if
+		kept.HoldOpened == true
+		and type(kept.HoldId) == "string"
+		and Products.Triple.Id > 0
+		and kept.HoldProductId == Products.Triple.Id
+	then
+		away.HoldId, away.HoldProductId, away.HoldOpened = kept.HoldId, kept.HoldProductId, true
 		away.Took = math.floor(sane(kept.Took))
-		-- Old saves held the entire balance at the time of the last snapshot.
-		away.HeldOwed = if type(kept.HeldOwed) == "number"
-			then math.min(away.Owed, math.floor(sane(kept.HeldOwed)))
-			else if away.Took > 0 then 0 else away.Owed
-		away.HeldSecs = if type(kept.HeldSecs) == "number"
-			then math.min(away.Secs, sane(kept.HeldSecs))
-			else if away.Took > 0 then 0 else away.Secs
+		away.HeldOwed = math.min(away.Owed, math.floor(sane(kept.HeldOwed)))
+		away.HeldSecs = math.min(away.Secs, sane(kept.HeldSecs))
 		away.HeldUntil = os.clock() + Config.Offline.HoldJoin
 	end
 	local left = sane(kept.Left)
@@ -154,6 +163,7 @@ end
 
 local function letGo(away: Away)
 	away.HoldId, away.HeldUntil = nil, -math.huge
+	away.HoldProductId, away.HoldOpened = nil, false
 	away.HeldOwed, away.HeldSecs, away.Took = 0, 0, 0
 end
 
@@ -164,6 +174,8 @@ local function hold(player: Player, away: Away, now: number)
 		remote:FireClient(player, "Denied", "Buying")
 	elseif away.Owed < 1 then
 		remote:FireClient(player, "Denied", "Nothing")
+	elseif away.Credits > 0 then
+		remote:FireClient(player, "Denied", "Credit")
 	elseif not open or not Products.onSale(Products.Triple) then
 		remote:FireClient(player, "Denied", "Sale")
 	elseif player:GetAttribute("SavedTank") ~= true or player:GetAttribute("SavedOffline") ~= true then
@@ -171,12 +183,20 @@ local function hold(player: Player, away: Away, now: number)
 	else
 		local token = HttpService:GenerateGUID(false)
 		away.HoldId, away.HeldUntil = token, now + Config.Offline.Hold
+		away.HoldProductId = Products.Triple.Id
 		away.HeldOwed, away.HeldSecs = away.Owed, away.Secs
 		tell(player, away)
 		local denied = open(player, token)
 		if denied and aways[player] == away then
 			remote:FireClient(player, "Denied", denied)
 		end
+	end
+end
+
+function OfflineService.promptOpened(player: Player, token: string)
+	local away = aways[player]
+	if away and away.HoldId == token then
+		away.HoldOpened = true
 	end
 end
 
@@ -193,16 +213,21 @@ end
 
 -- For PurchaseService: a receipt of Claim x3, `times` what is owed into the tank, all of it or nothing (false). Doesn't
 -- yield
-function OfflineService.triple(player: Player, times: number): boolean
+function OfflineService.triple(player: Player, times: number, productId: number): boolean
 	local away = aways[player]
-	if not away or not away.HoldId then
-		warn(`[OfflineService] Claim x3 of {player.Name} waits: no reserved reward`)
+	if not away then
 		return false
 	end
-	local coins = sane(away.HeldOwed * times + away.Took * math.max(times - 1, 0))
+	local matched = away.HoldOpened and away.HoldProductId == productId
+	local coins = if matched then sane(away.HeldOwed * times + away.Took * math.max(times - 1, 0)) else 0
 	if coins < 1 then
-		warn(`[OfflineService] Claim x3 of {player.Name} waits: reserved reward is empty`)
-		return false
+		away.Credits += 1
+		if matched then
+			letGo(away)
+		end
+		tell(player, away)
+		remote:FireClient(player, "Credit")
+		return true
 	end
 	if not AquariumService.give(player, coins) then
 		return false
@@ -219,7 +244,7 @@ end
 -- One ask from a player's client. An ask sooner than Offline.AskGap after the last is dropped
 local function ask(player: Player, what: any)
 	local away = aways[player]
-	if not away or Config.Offline.On == 0 or (what ~= "Claim" and what ~= "Triple") then
+	if not away or Config.Offline.On == 0 or (what ~= "Claim" and what ~= "Redeem" and what ~= "Triple") then
 		return
 	end
 	local now = os.clock()
@@ -230,12 +255,12 @@ local function ask(player: Player, what: any)
 	if what == "Triple" then
 		hold(player, away, now)
 		return
-	elseif away.HoldId and now < away.HeldUntil then
+	elseif away.HoldId and (now < away.HeldUntil or what == "Redeem") then
 		remote:FireClient(player, "Denied", "Buying")
 		return
 	end
-	local coins, secs = away.Owed, away.Secs
-	if coins < 1 then
+	local coins = away.Owed
+	if coins < 1 or (what == "Redeem" and away.Credits == 0) then
 		remote:FireClient(player, "Denied", "Nothing")
 		return
 	elseif not safe(player, away) then
@@ -243,11 +268,15 @@ local function ask(player: Player, what: any)
 		return
 	end
 	-- (no yield from here to the end: the coins and the claim are one moment)
-	away.Owed, away.Secs = 0, 0
-	if not AquariumService.give(player, coins) then
-		away.Owed, away.Secs = coins, secs
+	local useCredit = what == "Redeem"
+	local paid = if useCredit then coins * (Products.Triple.Amount or 3) else coins
+	if not AquariumService.give(player, paid) then
 		remote:FireClient(player, "Denied", "Tank")
 		return
+	end
+	away.Owed, away.Secs = 0, 0
+	if useCredit then
+		away.Credits -= 1
 	end
 	if away.HoldId then
 		away.Took += away.HeldOwed
@@ -255,7 +284,7 @@ local function ask(player: Player, what: any)
 	end
 	away.Test = false
 	tell(player, away)
-	remote:FireClient(player, "Paid", coins)
+	remote:FireClient(player, "Paid", paid)
 end
 
 -- Studio's test (above): the player comes back from workspace's "OfflineAway" seconds
@@ -293,10 +322,12 @@ local function join(player: Player)
 		Secs = 0,
 		Test = false,
 		AskedAt = -math.huge,
+		HoldOpened = false,
 		HeldOwed = 0,
 		HeldSecs = 0,
 		HeldUntil = -math.huge,
 		Took = 0,
+		Credits = 0,
 	}
 	if RunService:IsStudio() then
 		task.spawn(pretend, player)

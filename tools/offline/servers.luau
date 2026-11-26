@@ -452,6 +452,7 @@ function Servers.new(placePath: string)
 			local products = world.require(world.find("ReplicatedStorage.Shared.Products"))
 			local starter = products.Sections[1].Offers[1]
 			starter.Id, products.Triple.Id = 101, 102
+			products.TripleRetiredIds = { 103 }
 			server.Products = products
 			server.prompts = {}
 			server.onSale = true

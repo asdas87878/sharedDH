@@ -287,7 +287,7 @@ Products.Sections = {
 -- server's own number at the receipt (OfflineService.triple)
 Products.Triple = {
 	Key = "OfflineTriple",
-	Name = "Claim x3",
+	Name = "Claim x3 (Welcome Back)",
 	Kind = "Product",
 	Gives = "Offline",
 	Amount = 3,
@@ -295,6 +295,9 @@ Products.Triple = {
 	Price = 29,
 	Look = "Gold",
 } :: Offer
+
+-- Setup fills these with earlier Claim x3 product IDs. They can still deliver receipts after being taken off sale.
+Products.TripleRetiredIds = {} :: { number }
 
 -- Whether an offer can be bought: it has a product, and the server has something to give for it
 function Products.onSale(offer: Offer): boolean
@@ -312,7 +315,11 @@ Products.Part = { Coins = "Tank", Oxygen = "Oxygen", Pack = "Packs", Offline = "
 
 -- The offer a Roblox product is (the server's: a receipt's ProductId)
 function Products.byId(id: number, kind: string?): Offer?
-	if id > 0 and Products.Triple.Id == id and Products.Triple.Kind == (kind or "Product") then
+	if
+		id > 0
+		and (kind or "Product") == "Product"
+		and (Products.Triple.Id == id or table.find(Products.TripleRetiredIds, id) ~= nil)
+	then
 		return Products.Triple
 	end
 	for _, section in Products.Sections do

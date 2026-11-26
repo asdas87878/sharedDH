@@ -25,6 +25,7 @@ local WHY: { [string]: string } = {
 	Tank = "You need a tank first. It is kept for you",
 	Buying = "Claim x3 is being bought, one moment",
 	Sale = "Claim x3 is unavailable",
+	Credit = "You already have a prepaid x3 claim",
 }
 
 local shown = false -- it has come up by itself this visit
@@ -77,7 +78,10 @@ function OfflineController.Start()
 	OfflinePanel.Pressed:Connect(function()
 		askedAt = os.clock()
 		OfflinePanel.claiming(true)
-		remote:FireServer("Claim")
+		local player = State.Player
+		local credits = player:GetAttribute("OfflineTripleCredits")
+		local useCredit = player:GetAttribute("OfflineBuying") ~= true and type(credits) == "number" and credits > 0
+		remote:FireServer(if useCredit then "Redeem" else "Claim")
 	end)
 	if Products.onSale(Products.Triple) then
 		OfflinePanel.Triple:Connect(function()
@@ -101,6 +105,8 @@ function OfflineController.Start()
 		if what == "Paid" and type(a) == "number" then
 			SoundController.play("Claim")
 			DockNotes.note("+" .. Shop.cash(a), "From your tank, while you were away", true)
+		elseif what == "Credit" then
+			DockNotes.note("Claim x3 saved", "Use it on your next Welcome Back reward", true)
 		elseif what == "Denied" and WHY[a] then
 			OfflinePanel.say(WHY[a])
 		end
@@ -113,6 +119,7 @@ function OfflineController.Start()
 		askedAt = -math.huge
 		OfflinePanel.claiming(false)
 	end)
+	State.Player:GetAttributeChangedSignal("OfflineTripleCredits"):Connect(OfflinePanel.paint)
 	while true do
 		OfflineController.look(os.clock())
 		task.wait(EVERY)

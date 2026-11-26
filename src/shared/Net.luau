@@ -54,8 +54,8 @@
 --     Trainer (TrainService, both ways): the client sends "Off" or "Up"; the server sends "On", fish | "Off", fish,
 --       reason | "Gain", amount | "Up", level, name | "UpNo", why
 --     Purchase (PurchaseService): the client sends "PromptOnce", product id; the server sends "Got", key, amount
---     Offline (OfflineService and OfflineController, both ways; Config.Offline): the client sends "Claim" | "Triple" (hold
---       it, I buy Claim x3); the server opens Roblox's prompt and sends "Paid", coins | "Denied", why
+--     Offline (OfflineService and OfflineController): the client sends "Claim" | "Redeem" (prepaid x3) | "Triple" (buy).
+--       The server opens Roblox's prompt and sends "Paid", coins | "Credit" | "Denied", why
 --       ("Nothing"; "Save": the save is not in yet; "Tank": no tank to pay into; "Buying": held for a purchase; "Sale")
 --     Boards (LeaderboardService and BoardController, both ways): the client sends "Sync" (send me the boards); the
 --       server sends "State", { Next = server time of the next look, Boards = { { Id, Global, Rows = { { Id, Name,

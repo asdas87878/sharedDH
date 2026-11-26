@@ -325,6 +325,25 @@ do
 	ok("200 s away: nor then", g.window() == nil and not g.chipOn())
 end
 
+print("a prepaid x3 claim")
+do
+	local g = open({})
+	g.back(10, 3600)
+	g.pass(5)
+	local due = g.Panel.owed()
+	ok(
+		"an unreserved valid receipt saves a credit and leaves the visible reward",
+		g.Service.triple(g.player, 3, 103)
+			and g.Panel.owed() == due
+			and g.player:GetAttribute("OfflineTripleCredits") == 1
+	)
+	ok("the claim button shows prepaid x3", g.text("Body", "Claim", "Label") == "Claim x3 (prepaid)")
+	ok(
+		"pressing the prepaid claim redeems it without a paid prompt",
+		g.claim() and g.coins == due * 3 and g.player:GetAttribute("OfflineTripleCredits") == nil
+	)
+end
+
 ----------------------------------------------------------------------------------------------------------------------
 print("it shows once the player is there and nothing else is up")
 do
@@ -376,10 +395,7 @@ do
 		#names == 2 and names[1] == "Claim" and names[2] == "Close",
 		table.concat(names, ", ")
 	)
-	ok(
-		"live, the uploaded offline chest",
-		g.find("Body", "Chest").Image == "rbxassetid://90279043093713"
-	)
+	ok("live, the uploaded offline chest", g.find("Body", "Chest").Image == "rbxassetid://90279043093713")
 
 	print("claimed")
 	ok("CLAIM can be pressed", g.claim())

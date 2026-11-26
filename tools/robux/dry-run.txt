@@ -2,6 +2,7 @@ DRY RUN | universe {universeId} | no network or file writes
   Apply lists: GET https://apis.roblox.com/developer-products/v2/universes/{universeId}/developer-products/creator (all pages)
   Apply lists: GET https://apis.roblox.com/game-passes/v1/universes/{universeId}/game-passes/creator (all pages)
   Reused icons: keep existing icon; upload if missing
+  Before staging: retire any older Roblox product named 'Claim x3' and keep its receipt ID.
 Starter [Product] CREATE if no match; otherwise REUSE by name
   49 Robux | tools/robux/icons/Starter.png | {'name': 'Great White Pack', 'description': 'Colossal Great White, +50K Oxygen, +$1M, 1 hour x2 Oxygen and Cash for the whole server', 'price': '49', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
@@ -59,7 +60,7 @@ Cash6 [Product] CREATE if no match; otherwise REUSE by name
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 OfflineTriple [Product] CREATE if no match; otherwise REUSE by name
-  29 Robux | tools/robux/icons/OfflineTriple.png | {'name': 'Claim x3', 'description': 'Claim 3 times your Welcome Back reward.', 'price': '29', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
+  29 Robux | tools/robux/icons/OfflineTriple.png | {'name': 'Claim x3 (Welcome Back)', 'description': 'Claim 3 times your Welcome Back reward.', 'price': '29', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Offers: 15 | Hidden: Exclusive, DoubleLuck

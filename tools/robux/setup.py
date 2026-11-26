@@ -29,6 +29,8 @@ API = {
     "Product": ("developer-products/v2", "developerProducts", "productId", "iconImageAssetId"),
     "Pass": ("game-passes/v1", "gamePasses", "gamePassId", "iconAssetId"),
 }
+RETIRED_TRIPLE = re.compile(r"^Products\.TripleRetiredIds[ \t]*=[ \t]*\{([^{}]*)\}[ \t]*::", re.MULTILINE)
+LEGACY_TRIPLE_NAME = "Claim x3"
 TOKEN = re.compile(
     r'--\[(?P<equals>=*)\[.*?\](?P=equals)\]|--[^\n]*|"(?:\\.|[^"\\])*"'
     r"|'(?:\\.|[^'\\])*'|[A-Za-z_][A-Za-z_0-9]*|[0-9][0-9_]*|[^\s]",
@@ -288,17 +290,34 @@ def positive_id(value):
     raise SetupError("Roblox returned an invalid or unsupported offer ID")
 
 
-def reconcile(offers, cloud):
+def retired_config(source):
+    match = RETIRED_TRIPLE.search(source)
+    if match is None:
+        raise SetupError("Missing Products.TripleRetiredIds in Products.luau")
+    contents = match[1].strip().rstrip(",")
+    ids = {positive_id(id_text.strip()) for id_text in contents.split(",")} if contents else set()
+    return ids, match.span(1)
+
+
+def reconcile(offers, cloud, known_retired, *, staging=False):
     """Resolve every offer before the first write, so ambiguous names or IDs cannot partially apply."""
     catalogs = {kind: cloud.catalog(kind) for kind in dict.fromkeys(offer.kind for offer in offers)}
+    retired = {
+        positive_id(item["productId"]): item
+        for item in catalogs.get("Product", ())
+        if item["name"].casefold() == LEGACY_TRIPLE_NAME.casefold()
+        or positive_id(item["productId"]) in known_retired
+    }
     claimed, plan = set(), []
     for offer in offers:
         id_field = API[offer.kind][2]
         matches = [
             item for item in catalogs[offer.kind]
             if item["name"].casefold() == offer.name.casefold()
+            and (offer.kind != "Product" or positive_id(item["productId"]) not in retired)
         ]
-        if offer.id:
+        migrate = staging and offer.key == "OfflineTriple" and offer.id in retired
+        if offer.id and not migrate:
             matches = [item for item in matches if positive_id(item.get(id_field)) == offer.id]
             if not matches:
                 raise SetupError(f"{offer.key}: configured ID {offer.id} does not match its name in this universe")
@@ -311,7 +330,7 @@ def reconcile(offers, cloud):
                 raise SetupError(f"{offer.key}: Roblox ID is already assigned to another offer")
             claimed.add(identity)
         plan.append((offer, remote))
-    return plan
+    return plan, retired
 
 
 def current_fields(remote):
@@ -325,7 +344,12 @@ def current_fields(remote):
     }
 
 
-def stage(cloud, plan, replace_icons):
+def stage(cloud, plan, retired, replace_icons):
+    route = endpoint("Product", cloud.universe)
+    for offer_id, remote in retired.items():
+        if remote.get("isForSale") is not False:
+            cloud.request("PATCH", f"{route}/{offer_id}", {"isForSale": "false"})
+        print(f"RETIRED Claim x3 → {offer_id} (receipts only)", flush=True)
     ids = {}
     for offer, remote in plan:
         route = endpoint(offer.kind, cloud.universe)
@@ -348,8 +372,11 @@ def stage(cloud, plan, replace_icons):
     return ids
 
 
-def activate(cloud, plan):
+def activate(cloud, plan, retired, known_retired):
     # Validate the entire staged catalog before the first sale toggle.
+    if any(offer_id not in known_retired or remote.get("isForSale") is not False
+           for offer_id, remote in retired.items()):
+        raise SetupError("Stage and publish the retired Claim x3 IDs before activating")
     for offer, remote in plan:
         if not offer.id or remote is None:
             raise SetupError(f"{offer.key}: stage the catalog and publish the configured IDs before activating")
@@ -368,12 +395,16 @@ def activate(cloud, plan):
         print(f"ON SALE {offer.key} → {offer.id} ({offer.price} Robux)", flush=True)
 
 
-def write_ids(source, offers, ids):
+def write_ids(source, offers, ids, retired):
     updated = source
     for offer in sorted(offers, key=lambda offer: offer.id_span[0], reverse=True):
         if ids[offer.key] != offer.id:
             start, end = offer.id_span
             updated = updated[:start] + str(ids[offer.key]) + updated[end:]
+    known_retired, (start, end) = retired_config(updated)
+    if set(retired) - known_retired:
+        values = ", ".join(str(offer_id) for offer_id in sorted(known_retired | set(retired)))
+        updated = updated[:start] + f" {values} " + updated[end:]
     if updated == source:
         return
     if PRODUCTS.read_bytes().decode("utf-8") != source:
@@ -389,11 +420,14 @@ def write_ids(source, offers, ids):
             temporary.unlink(missing_ok=True)
 
 
-def dry_run(offers, hidden, universe, replace_icons):
+def dry_run(offers, hidden, universe, replace_icons, known_retired):
     print(f"DRY RUN | universe {universe} | no network or file writes")
     for kind in dict.fromkeys(offer.kind for offer in offers):
         print(f"  Apply lists: GET {HOST}{endpoint(kind, universe)}/creator (all pages)")
     print("  Reused icons: " + ("replace with local PNG" if replace_icons else "keep existing icon; upload if missing"))
+    print(f"  Before staging: retire any older Roblox product named {LEGACY_TRIPLE_NAME!r} and keep its receipt ID.")
+    if known_retired:
+        print(f"  Already recorded as receipt-only: {', '.join(map(str, sorted(known_retired)))}")
     for offer in offers:
         route = endpoint(offer.kind, universe)
         action = f"REUSE ID {offer.id} (validate name)" if offer.id else "CREATE if no match; otherwise REUSE by name"
@@ -421,8 +455,10 @@ def main():
         key = key_file(CONFIG / "roblox-key", read=live)
         universe = universe_id(CONFIG / "universe-id", required=live)
         if not live:
-            offers, hidden = load_offers(PRODUCTS.read_bytes().decode("utf-8"))
-            dry_run(offers, hidden, universe, args.replace_icons)
+            source = PRODUCTS.read_bytes().decode("utf-8")
+            offers, hidden = load_offers(source)
+            known_retired, _ = retired_config(source)
+            dry_run(offers, hidden, universe, args.replace_icons, known_retired)
             return 0
         with Path(__file__).open("rb") as lock:
             try:
@@ -432,15 +468,16 @@ def main():
             print(f"{'ACTIVATE' if args.activate else 'STAGE'} | universe {universe}", flush=True)
             source = PRODUCTS.read_bytes().decode("utf-8")
             offers, _ = load_offers(source)
+            known_retired, _ = retired_config(source)
             if args.activate and any(offer.id == 0 for offer in offers):
                 raise SetupError("Stage the catalog and publish the configured IDs before activating")
             cloud = Cloud(key, universe)
-            plan = reconcile(offers, cloud)
+            plan, retired = reconcile(offers, cloud, known_retired, staging=args.apply)
             if args.activate:
-                activate(cloud, plan)
+                activate(cloud, plan, retired, known_retired)
             else:
-                ids = stage(cloud, plan, args.replace_icons)
-                write_ids(source, offers, ids)
+                ids = stage(cloud, plan, retired, args.replace_icons)
+                write_ids(source, offers, ids, retired)
                 print(f"Staged {len(ids)} offers. Publish src/shared/Products.luau with these IDs before --activate.")
         return 0
     except (SetupError, OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as exc:

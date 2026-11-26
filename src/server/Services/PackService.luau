@@ -4,7 +4,7 @@
 -- here; nothing is asked of the client.
 --   Once: packs sold once an account (Products' Once): kept in the save's part "Packs", the player's "Pack" .. key
 --   attribute says so and the Shop says OWNED. A receipt for one already had is still given: they paid.
---   Pending: the server reserves a once-only pack before opening its prompt, across reconnects until cancel or grant.
+--   Pending: the server saves a reservation before showing a prompt. Only a prompt that opened survives a reconnect.
 --   The boost: Config.Boost's shares on what the seahorse trains and the tank earns, for everyone in this server until
 --   the workspace's "BoostEnds" (os.time, seconds; nil: none), "BoostBy" who bought it. Two bought add their time, never
 --   their shares, up to Boost.Most from now. The buyer's own end is saved: a server they join before it is boosted until
@@ -18,7 +18,8 @@ local Config = require(ReplicatedStorage.Shared.Config) :: any
 
 local PackService = {}
 
-type Record = { Once: { [string]: boolean }, Pending: { [string]: string }, Ends: number }
+type Pending = { Token: string, Opened: boolean }
+type Record = { Once: { [string]: boolean }, Pending: { [string]: Pending }, Ends: number }
 
 local records: { [Player]: Record } = setmetatable({}, { __mode = "k" }) :: any
 local ends = 0 -- os.time() the server's boost ends
@@ -65,14 +66,24 @@ function PackService.reserve(player: Player, key: string, token: string): boolea
 	if r.Once[key] or r.Pending[key] then
 		return false
 	end
-	r.Pending[key] = token
+	r.Pending[key] = { Token = token, Opened = false }
 	player:SetAttribute("PackPending" .. key, true)
 	return true
 end
 
+function PackService.promptOpened(player: Player, key: string, token: string)
+	local r = records[player]
+	local pending = r and r.Pending[key]
+	if r and pending and pending.Token == token then
+		-- A saved snapshot may still refer to the prepared record.
+		r.Pending[key] = { Token = token, Opened = true }
+	end
+end
+
 function PackService.cancelPrompt(player: Player, key: string, token: string): boolean
 	local r = records[player]
-	if not r or r.Pending[key] ~= token then
+	local pending = r and r.Pending[key]
+	if not r or not pending or pending.Token ~= token then
 		return false
 	end
 	r.Pending[key] = nil
@@ -115,9 +126,15 @@ function PackService.restore(player: Player, kept: any): boolean
 		end
 	end
 	if type(kept.Pending) == "table" then
-		for key, token in kept.Pending do
-			if type(key) == "string" and type(token) == "string" then
-				PackService.reserve(player, key, token)
+		for key, pending in kept.Pending do
+			if
+				type(key) == "string"
+				and type(pending) == "table"
+				and pending.Opened == true
+				and type(pending.Token) == "string"
+				and PackService.reserve(player, key, pending.Token)
+			then
+				PackService.promptOpened(player, key, pending.Token)
 			end
 		end
 	end

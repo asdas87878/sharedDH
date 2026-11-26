@@ -170,15 +170,21 @@ local function paint()
 		if not said then
 			hours.Text = `Your tank worked {OfflinePanel.time(number("OfflineSecs"))} without you`
 		end
+		local pending = State.Player:GetAttribute("OfflineBuying") == true
+		local prepaid = not pending and number("OfflineTripleCredits") > 0
 		claim.set(
-			if asking then "..." else "Claim!",
+			if asking then "..." elseif prepaid then "Claim x3 (prepaid)" else "Claim!",
 			if asking or owed < 1 then "Off" else "Cash",
 			not asking and owed >= 1
 		)
 		if triple then
-			local pending = State.Player:GetAttribute("OfflineBuying") == true
 			local ready = not pending and not asking and owed >= 1
 			triple.set(if pending then "Pending" else `Claim x3  {price}`, if ready then "Robux" else "Off", ready)
+			local row = triple.Root.Parent
+			if row and triple.Root.Visible == prepaid then
+				triple.Root.Visible = not prepaid
+				OfflinePanel.share(row)
+			end
 		end
 	end
 	if chip then
@@ -194,7 +200,7 @@ OfflinePanel.paint = paint
 function OfflinePanel.share(row: Instance)
 	local all: { GuiObject } = {}
 	for _, child in row:GetChildren() do
-		if child:IsA("GuiObject") then
+		if child:IsA("GuiObject") and child.Visible then
 			table.insert(all, child)
 		end
 	end
