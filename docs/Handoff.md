@@ -3,6 +3,16 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-26 · Six badges prepared (NULLROOM b1, review 1)
+
+- On the unmerged `badges` branch. Six badge pictures, a server award service, and an offline-first creation tool are ready.
+  Every badge ID is `0` and `Config.Badges.On` is `0`. [Badge sheet](../tools/badges/icons/sheet.png) · [Activation steps](../tools/badges/README.md).
+- Zone awards check the surveyed lane width, the named zone's bounds, and continuity from the last accepted sample.
+  Submarine drops can start a dive at the planned destination after the diver leaves the sub. Award checks recover after a
+  cooldown if Roblox is unavailable, with one worker per badge and player.
+- Offline award regression, setup dry run, and Rojo build passed. Selene reports the same seven warnings as `main`.
+  Live badge creation and Studio play remain for Hugo when the badges are ready to activate.
+
 ## 2026-11-26, the sandbox's top-left boxes gone (game code, the user's ask)
 `Config.Sandbox.Tag` 0: its keys line and a jump's numbers are not shown (1 brings them back). R, V and N's panel still work in Studio.
 

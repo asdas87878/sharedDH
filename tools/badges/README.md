@@ -7,13 +7,17 @@ The `badges` branch starts with every badge ID at `0` and `Config.Badges.On = 0`
 | Badge | Server trigger |
 | --- | --- |
 | First Catch | `RideService.OnTamed` after the server completes a tame. The badge service chains the existing lesson callback. |
-| Into the Twilight | `Zones.locate` finds `TWILIGHT` for an active diver in the server's map zones. |
+| Into the Twilight | An active diver reaches `TWILIGHT` inside the surveyed lane, with continuous movement or a validated submarine drop. |
 | Midnight Diver | The same check finds `MIDNIGHT`. |
 | The Underworld | The same check finds `THE UNDERWORLD`. |
 | Fusion! | `AquariumService.fuse` returns a successful result. The badge service wraps that method, which FuseService calls after validating the request. |
 | Seahorse Maxed | The server's `TrainerLevel` is 12, including when the save restores an already-maxed seahorse. |
 
-The award service checks Roblox ownership before each award attempt and keeps one request in flight per player and badge. It retries failures up to three total attempts per session. Taming, fusion, and zone milestones are checked through gameplay after activation. Previously completed taming, fusion, and dives have no retroactive grant. Zone detection uses the same geometry as the HUD and the same active dive states as the server distance tracker.
+The award service checks Roblox ownership before each award attempt. One worker per player and badge handles the request and keeps confirmed ownership for the session. After three failed attempts the worker waits 60 seconds before trying again. The player can move on once the milestone is earned.
+
+Ordinary dives start tracking in the Shallows. Each later sample must be within the surveyed lane and reachable from the last accepted sample. A badge requires entering the named zone below the surface. Leaving the submarine can start tracking at the trip’s destination when the diver is inside that zone and near the server’s planned drop point during its arrival window.
+
+Taming, fusion, and zone milestones are checked through gameplay after activation. Previously completed taming, fusion, and dives have no retroactive grant.
 
 ## Review offline
 
@@ -22,6 +26,8 @@ python3 tools/badges/setup.py --dry-run
 ```
 
 A plain invocation also prints the offline plan. It reads no API key, performs no HTTP calls, and writes no files.
+
+Run `lune run tools/badges/award_test.luau` from the repo root to check zone boundaries, submarine arrival, award recovery, and deduplication with a mocked Roblox service.
 
 ## Activate later
 

@@ -4214,6 +4214,9 @@ Config.Fuse = {
 Config.Badges = {
 	On = 0, -- 1: the server can award badges whose IDs have been set
 	ZoneEvery = 0.25, -- seconds between zone checks, matching the distance tracker
+	ZoneSpeed = 500, -- generous horizontal limit, studs per second, for riding and hops between checks
+	SubDropRadius = 400, -- room from the planned drop point for the kick, fling, or a late release
+	RetryCooldown = 60, -- seconds before another batch of award attempts after three failures
 }
 
 ----------------------------------------------------------------------------------------------------------------------
