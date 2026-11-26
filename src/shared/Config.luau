@@ -4209,6 +4209,14 @@ Config.Fuse = {
 }
 
 ----------------------------------------------------------------------------------------------------------------------
+-- Roblox milestones (tools/badges/README.md)
+
+Config.Badges = {
+	On = 0, -- 1: the server can award badges whose IDs have been set
+	ZoneEvery = 0.25, -- seconds between zone checks, matching the distance tracker
+}
+
+----------------------------------------------------------------------------------------------------------------------
 -- Spawn mix and the roster list: rarity shares per land, and the list that builds every fish kind
 
 -- Share of spawns by rarity per zone, from the roster's draft weights. A tier with no fish in a zone is skipped.
