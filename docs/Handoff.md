@@ -3,6 +3,9 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-26, the sandbox's top-left boxes gone (game code, the user's ask)
+`Config.Sandbox.Tag` 0: its keys line and a jump's numbers are not shown (1 brings them back). R, V and N's panel still work in Studio.
+
 ## 2026-11-25, the auras' "fart clouds" and the fish pile-up (game code, the user's ask)
 **Pushed, not played.**
 - **Auras:** the 3D look's twelve pictures (`Auras.Sheets`) were never uploaded, so where Studio has no local copies, and in

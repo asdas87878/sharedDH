@@ -1062,6 +1062,7 @@ local function build()
 		BackgroundTransparency = 0.3,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "",
+		Visible = Config.Sandbox.Tag == 1,
 	}, gui)
 	new("UIPadding", { PaddingLeft = UDim.new(0, 8) }, tag)
 	edge(tag)
@@ -1073,6 +1074,7 @@ local function build()
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextWrapped = true,
 		Text = "jump to see its numbers here",
+		Visible = Config.Sandbox.Tag == 1,
 	}, gui)
 	new("UIPadding", { PaddingLeft = UDim.new(0, 8) }, stats)
 	edge(stats)

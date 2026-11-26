@@ -3014,6 +3014,7 @@ Config.Sandbox = {
 	EndlessAir = false, -- Oxygen doesn't drain (turn it on to ride anywhere without the drain)
 	StartS = 130, -- R puts you back here: studs down the lane from its start, or further down, at the first place
 	StartRoom = 34, -- with this much water above the herd, so a jump has room to rise
+	Tag = 0, -- 1: the sandbox's two boxes in the top left (its keys, a jump's numbers); 0: none (the user, 2026-11-26: "get rid of the sandbox ui in the top left corner"). The keys and N's panel stay
 }
 
 -- The admin panel for playtesting (key P; AdminService, docs/sandbox.md "The admin panel"). Open to everyone in
