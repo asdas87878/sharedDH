@@ -4,6 +4,7 @@
 -- here; nothing is asked of the client.
 --   Once: packs sold once an account (Products' Once): kept in the save's part "Packs", the player's "Pack" .. key
 --   attribute says so and the Shop says OWNED. A receipt for one already had is still given: they paid.
+--   Pending: the server reserves a once-only pack before opening its prompt, across reconnects until cancel or grant.
 --   The boost: Config.Boost's shares on what the seahorse trains and the tank earns, for everyone in this server until
 --   the workspace's "BoostEnds" (os.time, seconds; nil: none), "BoostBy" who bought it. Two bought add their time, never
 --   their shares, up to Boost.Most from now. The buyer's own end is saved: a server they join before it is boosted until
@@ -17,7 +18,7 @@ local Config = require(ReplicatedStorage.Shared.Config) :: any
 
 local PackService = {}
 
-type Record = { Once: { [string]: boolean }, Ends: number }
+type Record = { Once: { [string]: boolean }, Pending: { [string]: string }, Ends: number }
 
 local records: { [Player]: Record } = setmetatable({}, { __mode = "k" }) :: any
 local ends = 0 -- os.time() the server's boost ends
@@ -25,7 +26,7 @@ local ends = 0 -- os.time() the server's boost ends
 local function record(player: Player): Record
 	local r = records[player]
 	if not r then
-		r = { Once = {}, Ends = 0 }
+		r = { Once = {}, Pending = {}, Ends = 0 }
 		records[player] = r
 	end
 	return r
@@ -52,8 +53,31 @@ function PackService.boost(player: Player, seconds: number)
 end
 
 function PackService.once(player: Player, key: string)
-	record(player).Once[key] = true
+	local r = record(player)
+	r.Once[key] = true
+	r.Pending[key] = nil
 	player:SetAttribute("Pack" .. key, true)
+	player:SetAttribute("PackPending" .. key, nil)
+end
+
+function PackService.reserve(player: Player, key: string, token: string): boolean
+	local r = record(player)
+	if r.Once[key] or r.Pending[key] then
+		return false
+	end
+	r.Pending[key] = token
+	player:SetAttribute("PackPending" .. key, true)
+	return true
+end
+
+function PackService.cancelPrompt(player: Player, key: string, token: string): boolean
+	local r = records[player]
+	if not r or r.Pending[key] ~= token then
+		return false
+	end
+	r.Pending[key] = nil
+	player:SetAttribute("PackPending" .. key, nil)
+	return true
 end
 
 function PackService.pass(player: Player, gives: string)
@@ -76,7 +100,7 @@ function PackService.dump(player: Player): { [string]: any }?
 		return nil
 	end
 	local r = record(player)
-	return { Once = table.clone(r.Once), Ends = r.Ends }
+	return { Once = table.clone(r.Once), Pending = table.clone(r.Pending), Ends = r.Ends }
 end
 
 function PackService.restore(player: Player, kept: any): boolean
@@ -87,6 +111,13 @@ function PackService.restore(player: Player, kept: any): boolean
 		for key, had in kept.Once do
 			if type(key) == "string" and had == true then
 				PackService.once(player, key)
+			end
+		end
+	end
+	if type(kept.Pending) == "table" then
+		for key, token in kept.Pending do
+			if type(key) == "string" and type(token) == "string" then
+				PackService.reserve(player, key, token)
 			end
 		end
 	end

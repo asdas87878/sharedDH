@@ -54,12 +54,12 @@ class Offer:
     def icon(self):
         return ICONS / f"{self.key}.png"
 
-    def fields(self):
+    def staging_fields(self):
         return {
             "name": self.name,
             "description": self.description,
             "price": str(self.price),
-            "isForSale": "true",
+            "isForSale": "false",
             "isManagedPricingEnabled": "false",
         }
 
@@ -314,12 +314,23 @@ def reconcile(offers, cloud):
     return plan
 
 
-def apply(cloud, plan, replace_icons):
+def current_fields(remote):
+    prices = remote.get("priceInformation") or {}
+    return {
+        "name": remote.get("name"),
+        "description": remote.get("description"),
+        "price": str(prices.get("defaultPriceInRobux")),
+        "isForSale": str(remote.get("isForSale")).lower(),
+        "isManagedPricingEnabled": str(remote.get("isManagedPricingEnabled")).lower(),
+    }
+
+
+def stage(cloud, plan, replace_icons):
     ids = {}
     for offer, remote in plan:
         route = endpoint(offer.kind, cloud.universe)
         _, _, id_field, icon_field = API[offer.kind]
-        fields = offer.fields()
+        fields = offer.staging_fields()
         if remote is None:
             created = cloud.request("POST", route, fields, offer.icon)
             offer_id = positive_id(created.get(id_field))
@@ -327,21 +338,34 @@ def apply(cloud, plan, replace_icons):
         else:
             offer_id = positive_id(remote.get(id_field))
             upload_icon = replace_icons or remote.get(icon_field) in (None, 0, "0")
-            prices = remote.get("priceInformation") or {}
-            current = {
-                "name": remote.get("name"),
-                "description": remote.get("description"),
-                "price": str(prices.get("defaultPriceInRobux")),
-                "isForSale": str(remote.get("isForSale")).lower(),
-                "isManagedPricingEnabled": str(remote.get("isManagedPricingEnabled")).lower(),
-            }
+            current = current_fields(remote)
             changes = {field: value for field, value in fields.items() if current[field] != value}
             if changes or upload_icon:
                 cloud.request("PATCH", f"{route}/{offer_id}", changes, offer.icon if upload_icon else None)
             action = "REUSED + UPDATED" if changes or upload_icon else "REUSED"
         ids[offer.key] = offer_id
-        print(f"{action} {offer.key} → {offer_id} ({offer.price} Robux)", flush=True)
+        print(f"{action} {offer.key} → {offer_id} ({offer.price} Robux, off sale)", flush=True)
     return ids
+
+
+def activate(cloud, plan):
+    # Validate the entire staged catalog before the first sale toggle.
+    for offer, remote in plan:
+        if not offer.id or remote is None:
+            raise SetupError(f"{offer.key}: stage the catalog and publish the configured IDs before activating")
+        current = current_fields(remote)
+        expected = offer.staging_fields()
+        expected.pop("isForSale")
+        icon_field = API[offer.kind][3]
+        if not remote.get(icon_field) or remote.get(icon_field) == "0" or any(
+            current[field] != value for field, value in expected.items()
+        ):
+            raise SetupError(f"{offer.key}: catalog differs from staging. Stage and publish before activating")
+    for offer, remote in plan:
+        if remote.get("isForSale") is not True:
+            route = endpoint(offer.kind, cloud.universe)
+            cloud.request("PATCH", f"{route}/{offer.id}", {"isForSale": "true"})
+        print(f"ON SALE {offer.key} → {offer.id} ({offer.price} Robux)", flush=True)
 
 
 def write_ids(source, offers, ids):
@@ -374,24 +398,27 @@ def dry_run(offers, hidden, universe, replace_icons):
         route = endpoint(offer.kind, universe)
         action = f"REUSE ID {offer.id} (validate name)" if offer.id else "CREATE if no match; otherwise REUSE by name"
         print(f"{offer.key} [{offer.kind}] {action}")
-        print(f"  {offer.price} Robux | {offer.icon.relative_to(ROOT)} | {offer.fields()}")
+        print(f"  {offer.price} Robux | {offer.icon.relative_to(ROOT)} | {offer.staging_fields()}")
         if not offer.id:
             print(f"  POST {route} (new)")
         print(f"  PATCH {route}/{offer.id or '{offerId}'} (if changes needed)")
     print(f"Offers: {len(offers)} | Hidden: {', '.join(hidden) or 'none'}")
+    print("Publish the game with the staged IDs, then --activate to PATCH isForSale=true on those IDs.")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true", help="show the offline plan (default)")
-    mode.add_argument("--apply", action="store_true", help="make live changes and record IDs in Products.luau")
+    mode.add_argument("--apply", action="store_true", help="stage offers off sale and record IDs in Products.luau")
+    mode.add_argument("--activate", action="store_true", help="enable sales after publishing the game with the staged IDs")
     parser.add_argument("--replace-icons", action="store_true", help="also replace icons on reused Roblox offers")
     args = parser.parse_args()
     try:
-        key = key_file(CONFIG / "roblox-key", read=args.apply)
-        universe = universe_id(CONFIG / "universe-id", required=args.apply)
-        if not args.apply:
+        live = args.apply or args.activate
+        key = key_file(CONFIG / "roblox-key", read=live)
+        universe = universe_id(CONFIG / "universe-id", required=live)
+        if not live:
             offers, hidden = load_offers(PRODUCTS.read_bytes().decode("utf-8"))
             dry_run(offers, hidden, universe, args.replace_icons)
             return 0
@@ -400,19 +427,25 @@ def main():
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
                 raise SetupError("Another setup run is already applying from this checkout") from None
-            print(f"APPLY | universe {universe}", flush=True)
+            print(f"{'ACTIVATE' if args.activate else 'STAGE'} | universe {universe}", flush=True)
             source = PRODUCTS.read_bytes().decode("utf-8")
             offers, _ = load_offers(source)
+            if args.activate and any(offer.id == 0 for offer in offers):
+                raise SetupError("Stage the catalog and publish the configured IDs before activating")
             cloud = Cloud(key, universe)
-            ids = apply(cloud, reconcile(offers, cloud), args.replace_icons)
-            write_ids(source, offers, ids)
-            print(f"Resolved {len(ids)} offers. IDs recorded in src/shared/Products.luau.")
+            plan = reconcile(offers, cloud)
+            if args.activate:
+                activate(cloud, plan)
+            else:
+                ids = stage(cloud, plan, args.replace_icons)
+                write_ids(source, offers, ids)
+                print(f"Staged {len(ids)} offers. Publish src/shared/Products.luau with these IDs before --activate.")
         return 0
     except (SetupError, OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as exc:
         detail = str(exc) if isinstance(exc, SetupError) else f"could not process local files or Roblox response ({type(exc).__name__})"
         print(f"Setup stopped: {detail}", file=sys.stderr)
-        if args.apply:
-            print("If a write was attempted, check Creator Hub before rerunning. Matching offers are reused.", file=sys.stderr)
+        if args.apply or args.activate:
+            print("If a write was attempted, check Creator Hub before rerunning the same command.", file=sys.stderr)
         return 1
 
 
