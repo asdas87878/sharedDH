@@ -24,6 +24,7 @@ local WHY: { [string]: string } = {
 	Save = "Your save is still loading, try again",
 	Tank = "You need a tank first. It is kept for you",
 	Buying = "Claim x3 is being bought, one moment",
+	Sale = "Claim x3 is unavailable",
 }
 
 local shown = false -- it has come up by itself this visit
@@ -100,8 +101,6 @@ function OfflineController.Start()
 		if what == "Paid" and type(a) == "number" then
 			SoundController.play("Claim")
 			DockNotes.note("+" .. Shop.cash(a), "From your tank, while you were away", true)
-		elseif what == "Buy" and type(a) == "number" then
-			game:GetService("MarketplaceService"):PromptProductPurchase(State.Player, a)
 		elseif what == "Denied" and WHY[a] then
 			OfflinePanel.say(WHY[a])
 		end
@@ -109,6 +108,10 @@ function OfflineController.Start()
 	State.Player:GetAttributeChangedSignal("OfflineOwed"):Connect(function()
 		OfflinePanel.paint()
 		OfflineController.look(os.clock())
+	end)
+	State.Player:GetAttributeChangedSignal("OfflineBuying"):Connect(function()
+		askedAt = -math.huge
+		OfflinePanel.claiming(false)
 	end)
 	while true do
 		OfflineController.look(os.clock())

@@ -15,21 +15,21 @@
 --   the coins and the claim are kept together or lost together: it can't pay twice, and it can't vanish unpaid. For the
 --   same reason nothing is claimed unless the save has both parts on (the attributes SavedTank and SavedOffline, which
 --   only the server can set). Not claimed (the X, or they left): it stays owed and is saved as it is.
---   Claim x3 for Robux (Products.Triple; Hugo, 2026-11-25): the remote's "Triple" holds what is owed (no free claim) and
---   the client opens Roblox's prompt. A closed prompt lets it go; a purchase is paid by PurchaseService's receipt through
---   triple(): what is owed here, times the product's own number, into the tank, in the same snapshot as the receipt. The
---   hold is kept in the save (Held), so it outlives a rejoin for Offline.HoldJoin. An answer that never comes lets it go
---   after Offline.Hold; a free claim made then is remembered (Took), and a receipt that comes after all pays the rest of it.
+--   Claim x3 for Robux (Products.Triple): "Triple" reserves the current reward. PurchaseService saves the reservation
+--   before opening Roblox's prompt. Only cancellation or a granted receipt releases another paid prompt. After
+--   Offline.Hold (or HoldJoin on rejoin), the player can claim the base for free; the receipt then pays the remaining
+--   bonus. Earnings added on a later visit are outside the reservation.
 --   With saving off (SaveParts' ON, as now) nothing is ever given back, so nothing is owed and nothing shows.
 --   No tank (more players than plots): nothing is paid or lost; it waits until they have one, as their coins do.
 -- Told to the client by player attributes (nil: nothing is owed): OfflineOwed (whole coins) and OfflineSecs (the seconds
--- they were earned in). The remote answers "Paid", coins | "Buy", product (open Roblox's prompt) | "Denied", why
+-- they were earned in), and OfflineBuying while a paid claim is pending. The remote answers "Paid", coins | "Denied", why
 -- ("Nothing", "Save": the save isn't in yet or is another server's, "Tank": no tank to pay into, "Buying": held for a
 -- purchase, "Sale": Claim x3 is not on sale).
 -- Studio's test: the workspace attribute "OfflineAway" (seconds; before Play, or changed while it runs) makes every player
 -- come back from that long away, with no save needed. "OfflineRate" is the coins a second to pretend; without it, what the
 -- tank earns then, or 100 for a tank that earns nothing. It does nothing with "SaveReal" on (Roblox's own store), nor in a
 -- live game.
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -40,6 +40,7 @@ local Products = require(ReplicatedStorage.Shared.Products)
 local AquariumService = require(script.Parent.AquariumService)
 
 local OfflineService = {}
+OfflineService.OpenTriple = nil :: ((Player, string) -> string?)?
 
 local TEST_RATE = 100 -- the test's coins a second for a tank that earns nothing
 local TEST_WAIT = 30 -- seconds the test waits for a player's tank
@@ -49,7 +50,9 @@ type Away = {
 	Secs: number, -- the seconds they were earned in
 	Test: boolean, -- some of it is the Studio test's: claimed with no save
 	AskedAt: number, -- os.clock() of the last ask we listened to
-	Held: boolean, -- a purchase of Claim x3 was begun and not seen refused or paid
+	HoldId: string?, -- a purchase of Claim x3 was begun and not seen refused or paid
+	HeldOwed: number, -- the part of Owed reserved when the prompt started
+	HeldSecs: number,
 	HeldUntil: number, -- os.clock(): no free claim before it
 	Took: number, -- coins claimed freely while Held, its time run out: a late receipt pays the rest of them
 }
@@ -84,6 +87,7 @@ local function tell(player: Player, away: Away)
 	local on = Config.Offline.On ~= 0 and away.Owed >= 1
 	player:SetAttribute("OfflineSecs", if on then away.Secs else nil)
 	player:SetAttribute("OfflineOwed", if on then away.Owed else nil)
+	player:SetAttribute("OfflineBuying", if away.HoldId then true else nil)
 end
 
 -- So long away at that many coins a second, added to what is owed
@@ -106,7 +110,10 @@ function OfflineService.dump(player: Player): { [string]: any }?
 		Rate = rate,
 		Owed = away.Owed,
 		Secs = away.Secs,
-		Held = if away.Held then true else nil,
+		Held = if away.HoldId then true else nil,
+		HoldId = away.HoldId,
+		HeldOwed = if away.HoldId then away.HeldOwed else nil,
+		HeldSecs = if away.HoldId then away.HeldSecs else nil,
 		Took = if away.Took > 0 then away.Took else nil,
 	}
 end
@@ -123,9 +130,16 @@ function OfflineService.restore(player: Player, kept: any): boolean
 	end
 	away.Owed = sane(away.Owed + math.floor(sane(kept.Owed)))
 	away.Secs = sane(away.Secs + sane(kept.Secs))
-	away.Took = math.floor(sane(kept.Took))
-	if kept.Held == true then
-		away.Held = true
+	if type(kept.HoldId) == "string" or kept.Held == true then
+		away.HoldId = if type(kept.HoldId) == "string" then kept.HoldId else "legacy"
+		away.Took = math.floor(sane(kept.Took))
+		-- Old saves held the entire balance at the time of the last snapshot.
+		away.HeldOwed = if type(kept.HeldOwed) == "number"
+			then math.min(away.Owed, math.floor(sane(kept.HeldOwed)))
+			else if away.Took > 0 then 0 else away.Owed
+		away.HeldSecs = if type(kept.HeldSecs) == "number"
+			then math.min(away.Secs, sane(kept.HeldSecs))
+			else if away.Took > 0 then 0 else away.Secs
 		away.HeldUntil = os.clock() + Config.Offline.HoldJoin
 	end
 	local left = sane(kept.Left)
@@ -139,55 +153,62 @@ local function safe(player: Player, away: Away): boolean
 end
 
 local function letGo(away: Away)
-	away.Held, away.HeldUntil = false, -math.huge
+	away.HoldId, away.HeldUntil = nil, -math.huge
+	away.HeldOwed, away.HeldSecs, away.Took = 0, 0, 0
 end
 
 -- Claim x3 asked for: what is owed is held, and the client may open Roblox's prompt
 local function hold(player: Player, away: Away, now: number)
-	if away.Owed < 1 then
+	local open = OfflineService.OpenTriple
+	if away.HoldId then
+		remote:FireClient(player, "Denied", "Buying")
+	elseif away.Owed < 1 then
 		remote:FireClient(player, "Denied", "Nothing")
-	elseif not Products.onSale(Products.Triple) then
+	elseif not open or not Products.onSale(Products.Triple) then
 		remote:FireClient(player, "Denied", "Sale")
 	elseif player:GetAttribute("SavedTank") ~= true or player:GetAttribute("SavedOffline") ~= true then
 		remote:FireClient(player, "Denied", "Save")
-	elseif away.Held and now < away.HeldUntil then
-		remote:FireClient(player, "Denied", "Buying")
 	else
-		away.Held, away.HeldUntil = true, now + Config.Offline.Hold
-		remote:FireClient(player, "Buy", Products.Triple.Id)
+		local token = HttpService:GenerateGUID(false)
+		away.HoldId, away.HeldUntil = token, now + Config.Offline.Hold
+		away.HeldOwed, away.HeldSecs = away.Owed, away.Secs
+		tell(player, away)
+		local denied = open(player, token)
+		if denied and aways[player] == away then
+			remote:FireClient(player, "Denied", denied)
+		end
 	end
 end
 
--- For PurchaseService: Roblox's prompt for Claim x3 has closed. Bought: the hold stays until the receipt
-function OfflineService.prompted(player: Player, bought: boolean)
+-- For PurchaseService: a canceled prompt releases the reservation it opened.
+function OfflineService.cancelPrompt(player: Player, token: string): boolean
 	local away = aways[player]
-	if not away or not away.Held then
-		return
-	elseif bought then
-		away.HeldUntil = math.huge
-	else
-		letGo(away)
+	if not away or away.HoldId ~= token then
+		return false
 	end
+	letGo(away)
+	tell(player, away)
+	return true
 end
 
 -- For PurchaseService: a receipt of Claim x3, `times` what is owed into the tank, all of it or nothing (false). Doesn't
 -- yield
 function OfflineService.triple(player: Player, times: number): boolean
 	local away = aways[player]
-	if not away then
+	if not away or not away.HoldId then
+		warn(`[OfflineService] Claim x3 of {player.Name} waits: no reserved reward`)
 		return false
 	end
-	local owed, secs, took = away.Owed, away.Secs, away.Took
-	local coins = sane(owed * times + took * math.max(times - 1, 0))
+	local coins = sane(away.HeldOwed * times + away.Took * math.max(times - 1, 0))
 	if coins < 1 then
-		warn(`[OfflineService] Claim x3 of {player.Name} waits: nothing is owed`)
+		warn(`[OfflineService] Claim x3 of {player.Name} waits: reserved reward is empty`)
 		return false
 	end
-	away.Owed, away.Secs, away.Took = 0, 0, 0
 	if not AquariumService.give(player, coins) then
-		away.Owed, away.Secs, away.Took = owed, secs, took
 		return false
 	end
+	away.Owed -= away.HeldOwed
+	away.Secs -= away.HeldSecs
 	letGo(away)
 	away.Test = false
 	tell(player, away)
@@ -209,7 +230,7 @@ local function ask(player: Player, what: any)
 	if what == "Triple" then
 		hold(player, away, now)
 		return
-	elseif away.Held and now < away.HeldUntil then
+	elseif away.HoldId and now < away.HeldUntil then
 		remote:FireClient(player, "Denied", "Buying")
 		return
 	end
@@ -228,8 +249,9 @@ local function ask(player: Player, what: any)
 		remote:FireClient(player, "Denied", "Tank")
 		return
 	end
-	if away.Held then
-		away.Took = coins
+	if away.HoldId then
+		away.Took += away.HeldOwed
+		away.HeldOwed, away.HeldSecs = 0, 0
 	end
 	away.Test = false
 	tell(player, away)
@@ -271,7 +293,8 @@ local function join(player: Player)
 		Secs = 0,
 		Test = false,
 		AskedAt = -math.huge,
-		Held = false,
+		HeldOwed = 0,
+		HeldSecs = 0,
 		HeldUntil = -math.huge,
 		Took = 0,
 	}

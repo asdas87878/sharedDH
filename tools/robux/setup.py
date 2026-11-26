@@ -414,6 +414,8 @@ def main():
     mode.add_argument("--activate", action="store_true", help="enable sales after publishing the game with the staged IDs")
     parser.add_argument("--replace-icons", action="store_true", help="also replace icons on reused Roblox offers")
     args = parser.parse_args()
+    if args.activate and args.replace_icons:
+        parser.error("--replace-icons is a staging option")
     try:
         live = args.apply or args.activate
         key = key_file(CONFIG / "roblox-key", read=live)

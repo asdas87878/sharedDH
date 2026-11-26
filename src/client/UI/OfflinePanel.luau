@@ -176,8 +176,9 @@ local function paint()
 			not asking and owed >= 1
 		)
 		if triple then
-			local ready = not asking and owed >= 1
-			triple.set(`Claim x3  {price}`, if ready then "Robux" else "Off", ready)
+			local pending = State.Player:GetAttribute("OfflineBuying") == true
+			local ready = not pending and not asking and owed >= 1
+			triple.set(if pending then "Pending" else `Claim x3  {price}`, if ready then "Robux" else "Off", ready)
 		end
 	end
 	if chip then

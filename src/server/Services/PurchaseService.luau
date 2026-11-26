@@ -1,6 +1,7 @@
 --!strict
 -- What a Robux purchase gives (the user, 2026-11-23). Roblox calls the one ProcessReceipt here for each bought product;
--- what it gives is Shared/Products' own line for it (Gives, Amount): the client only ever asks Roblox for the prompt.
+-- what it gives is Shared/Products' own line for it (Gives, Amount). The server opens prompts for the once-only pack
+-- and Claim x3 after saving their reservation. Only a canceled prompt or receipt grant clears the reservation.
 --   Each receipt is given once: its PurchaseId goes into the player's profile (SaveService) in the same snapshot as what
 --   it gave, and Roblox is told "granted" only when that profile is seen saved. Every other ending (the player gone, no
 --   profile, no wallet yet, the store down) is "not yet": Roblox asks again, here or when they next join.
@@ -13,6 +14,7 @@
 -- The remote "Purchase" tells the buyer's machine ("Got", the offer's key, the amount).
 -- Studio's checks: ServerStorage.TestReceipt (a BindableFunction), Invoke(player, offer, purchase id) runs a made-up
 -- receipt for an offer (a table as in Products) and answers with the decision's name. It is not there in a live game.
+local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -31,6 +33,7 @@ local PurchaseService = {}
 
 local WAIT_PROFILE = 20 -- seconds a receipt waits for the player's profile
 local WAIT_SAVE = 40 -- and for the save after it
+local WAIT_PROMPT_SAVE = 15 -- seconds for a prompt reservation to be saved before opening Roblox's window
 
 -- What an offer gives -> the giving of it (true when given; never yields). Where it is kept: Products.Part
 local GIVES: { [string]: (player: Player, amount: number) -> boolean } = {
@@ -77,9 +80,84 @@ end
 
 local remote: RemoteEvent
 local busy: { [string]: boolean } = {} -- receipts being handled (Roblox can ask again before the answer)
+local prompts: { [Player]: { [number]: string } } = setmetatable({}, { __mode = "k" }) :: any
 
 local NOT_YET = Enum.ProductPurchaseDecision.NotProcessedYet
 local GRANTED = Enum.ProductPurchaseDecision.PurchaseGranted
+
+local function cancelPrompt(player: Player, offer: Products.Offer, token: string)
+	local canceled = if offer.Gives == "Offline"
+		then OfflineService.cancelPrompt(player, token)
+		else PackService.cancelPrompt(player, offer.Key, token)
+	local profile = if canceled then SaveService.profileOf(player) else nil
+	if profile and SaveService.take(player) then
+		profile:Save()
+	end
+end
+
+-- Distinguish a reservation from earlier saves of the same offer, and require it to survive a server crash.
+local function reserved(parts: any, offer: Products.Offer, token: string): boolean
+	if offer.Gives == "Offline" then
+		return parts.Offline ~= nil and parts.Offline.HoldId == token
+	end
+	local pending = parts.Packs and parts.Packs.Pending
+	return pending ~= nil and pending[offer.Key] == token
+end
+
+local function openPrompt(player: Player, offer: Products.Offer, token: string): string?
+	local active = prompts[player]
+	if not active then
+		active = {}
+		prompts[player] = active
+	end
+	local profile = SaveService.profileOf(player)
+	if next(active) or not profile then
+		cancelPrompt(player, offer, token)
+		return if next(active) then "Buying" else "Save"
+	end
+	active[offer.Id] = token
+	local ok, info = pcall(MarketplaceService.GetProductInfoAsync, MarketplaceService, offer.Id, Enum.InfoType.Product)
+	local forSale = ok and type(info) == "table" and info.IsForSale == true
+	if forSale and player.Parent == Players and SaveService.take(player) then
+		profile:Save()
+		local untilAt = os.clock() + WAIT_PROMPT_SAVE
+		while
+			player.Parent == Players
+			and profile:IsActive()
+			and os.clock() < untilAt
+			and not reserved(profile.LastSavedData.Parts, offer, token)
+		do
+			task.wait(0.2)
+		end
+		if
+			player.Parent == Players
+			and profile:IsActive()
+			and reserved(profile.LastSavedData.Parts, offer, token)
+			and SaveService.take(player)
+			and reserved(profile.Data.Parts, offer, token)
+			and pcall(MarketplaceService.PromptProductPurchase, MarketplaceService, player, offer.Id)
+		then
+			return nil
+		end
+	end
+	active[offer.Id] = nil
+	cancelPrompt(player, offer, token)
+	return if forSale then "Save" else "Sale"
+end
+
+local function promptOnce(player: Player, action: any, id: any)
+	if action ~= "PromptOnce" or type(id) ~= "number" then
+		return
+	end
+	local offer = Products.byId(id)
+	if not offer or not offer.Once or not offer.Pack or not Products.onSale(offer) or not partsOn(player, offer) then
+		return
+	end
+	local token = HttpService:GenerateGUID(false)
+	if PackService.reserve(player, offer.Key, token) then
+		openPrompt(player, offer, token)
+	end
+end
 
 -- Whether Roblox's store is seen to have the receipt
 local function saved(profile: any, id: string): boolean
@@ -180,9 +258,13 @@ function PurchaseService.Init()
 		remote.Name = "Purchase"
 		remote.Parent = Net.Folder
 	end
+	OfflineService.OpenTriple = function(player, token)
+		return openPrompt(player, Products.Triple, token)
+	end
 end
 
 function PurchaseService.Start()
+	remote.OnServerEvent:Connect(promptOnce)
 	Players.PlayerAdded:Connect(passes)
 	for _, player in Players:GetPlayers() do
 		task.spawn(passes, player)
@@ -196,8 +278,15 @@ function PurchaseService.Start()
 	end)
 	MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId: number, id: number, bought: boolean)
 		local player = Players:GetPlayerByUserId(userId)
-		if player and id > 0 and id == Products.Triple.Id then
-			OfflineService.prompted(player, bought)
+		local active = if player then prompts[player] else nil
+		local token = if active then active[id] else nil
+		if not player or not active or not token then
+			return
+		end
+		active[id] = nil
+		local offer = Products.byId(id)
+		if not bought and offer then
+			cancelPrompt(player, offer, token)
 		end
 	end)
 	MarketplaceService.ProcessReceipt = function(info): Enum.ProductPurchaseDecision

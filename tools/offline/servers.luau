@@ -184,6 +184,10 @@ function Servers.new(placePath: string)
 			GetAttribute = function(_self: any, name: string)
 				return server.workspace[name]
 			end,
+			SetAttribute = function(_self: any, name: string, value: any)
+				server.workspace[name] = value
+				attributes.fire()
+			end,
 			GetAttributeChangedSignal = function()
 				return attributes
 			end,
@@ -269,6 +273,14 @@ function Servers.new(placePath: string)
 			GetPlayers = function()
 				return table.clone(server.players)
 			end,
+			GetPlayerByUserId = function(_self: any, id: number)
+				for _, player in server.players do
+					if player.UserId == id then
+						return player
+					end
+				end
+				return nil
+			end,
 		}
 		world.services.Players = Players
 
@@ -286,11 +298,18 @@ function Servers.new(placePath: string)
 			end,
 		}
 		server.remote = remote
+		local purchaseRemote = {
+			OnServerEvent = signal(roblox.faults),
+			IsA = function()
+				return true
+			end,
+			FireClient = function() end,
+		}
 		world.stubs["ReplicatedStorage.Shared.Net"] = {
 			Index = { OnServerEvent = signal(roblox.faults), FireClient = function() end },
 			Folder = {
 				FindFirstChild = function(_self: any, name: string)
-					return if name == "Offline" then remote else nil
+					return if name == "Offline" then remote elseif name == "Purchase" then purchaseRemote else nil
 				end,
 			},
 		}
@@ -409,8 +428,11 @@ function Servers.new(placePath: string)
 			end,
 		}
 
-		-- The lesson and pack are outside this test. Run the real Index alongside the tank.
+		-- Run real pack persistence when the test also drives purchases.
 		for _, name in { "LessonService", "PackService" } do
+			if opts.Purchases and name == "PackService" then
+				continue
+			end
 			world.stubs[SERVICES .. name] = {
 				dump = function()
 					return {}
@@ -425,6 +447,49 @@ function Servers.new(placePath: string)
 		local OfflineService = world.require(world.find(SERVICES .. "OfflineService"))
 		local SaveService = world.require(world.find(SERVICES .. "SaveService"))
 		server.Offline, server.Save = OfflineService, SaveService
+		local purchases
+		if opts.Purchases then
+			local products = world.require(world.find("ReplicatedStorage.Shared.Products"))
+			local starter = products.Sections[1].Offers[1]
+			starter.Id, products.Triple.Id = 101, 102
+			server.Products = products
+			server.prompts = {}
+			server.onSale = true
+			local marketplace = {
+				PromptGamePassPurchaseFinished = signal(roblox.faults),
+				PromptProductPurchaseFinished = signal(roblox.faults),
+				GetProductInfoAsync = function()
+					return { IsForSale = server.onSale }
+				end,
+				PromptProductPurchase = function(_self: any, player: any, id: number)
+					table.insert(server.prompts, { player, id, roblox.kept(player.Name) })
+				end,
+			}
+			world.services.MarketplaceService = marketplace
+			world.globals.Enum = setmetatable({
+				InfoType = { Product = "Product" },
+				ProductPurchaseDecision = { PurchaseGranted = "Granted", NotProcessedYet = "Pending" },
+			}, { __index = require("@lune/roblox").Enum })
+			function server.promptOnce(player: any)
+				purchaseRemote.OnServerEvent.fire(player, "PromptOnce", starter.Id)
+			end
+			function server.finishPrompt(player: any, id: number, bought: boolean)
+				marketplace.PromptProductPurchaseFinished.fire(player.UserId, id, bought)
+			end
+			function server.receipt(player: any, id: number, purchaseId: string)
+				local result = {}
+				taskLib.spawn(function()
+					result.Decision = marketplace.ProcessReceipt({
+						PlayerId = player.UserId,
+						ProductId = id,
+						PurchaseId = purchaseId,
+					})
+				end)
+				return result
+			end
+			purchases = world.require(world.find(SERVICES .. "PurchaseService"))
+			purchases.Init()
+		end
 
 		local function letGo(player: any)
 			tanks[player] = nil
@@ -437,6 +502,9 @@ function Servers.new(placePath: string)
 		taskLib.spawn(OfflineService.Start)
 		taskLib.spawn(SaveService.Start)
 		taskLib.spawn(IndexService.Start)
+		if purchases then
+			taskLib.spawn(purchases.Start)
+		end
 		if opts.AquariumFirst == false then
 			removing:Connect(letGo)
 		end
@@ -446,6 +514,7 @@ function Servers.new(placePath: string)
 			local held = {} :: { [string]: any }
 			local player = {
 				Name = name,
+				DisplayName = name,
 				UserId = 7000 + #name * 131 + string.byte(name),
 				Parent = Players :: any,
 				Kicked = nil :: string?,

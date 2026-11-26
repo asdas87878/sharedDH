@@ -21,6 +21,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Net = require(ReplicatedStorage.Shared.Net)
 local Products = require(ReplicatedStorage.Shared.Products)
 local State = require(script.Parent.Parent.Lib.State)
 local Anim = require(script.Parent.Anim)
@@ -235,6 +236,10 @@ local function owned(offer: Products.Offer): boolean
 	return (offer.Kind == "Pass" or offer.Once == true) and State.Player:GetAttribute(name) == true
 end
 
+local function pending(offer: Products.Offer): boolean
+	return offer.Once == true and State.Player:GetAttribute("PackPending" .. offer.Key) == true
+end
+
 -- Whether an offer shows its price: it is on sale, or (Studio) the preview shows the price it will have
 local function priced(offer: Products.Offer): boolean
 	return Products.onSale(offer) or (PREVIEW and (offer.Amount ~= nil or offer.Pack ~= nil) and offer.Price > 0)
@@ -278,6 +283,8 @@ local function buy(card: GuiObject, get: () -> Products.Offer?, props: { [string
 		local offer = get()
 		if offer and owned(offer) then
 			b.set("Owned", "Off", false)
+		elseif offer and pending(offer) then
+			b.set("Pending", "Off", false)
 		elseif offer and priced(offer) then
 			b.set(tostring(prices[offer.Key] or offer.Price), "Robux", true)
 			askPrice(offer)
@@ -285,7 +292,7 @@ local function buy(card: GuiObject, get: () -> Products.Offer?, props: { [string
 			b.set("Soon", "Off", false)
 		end
 		if sign then
-			sign.Visible = offer ~= nil and priced(offer) and not owned(offer)
+			sign.Visible = offer ~= nil and priced(offer) and not owned(offer) and not pending(offer)
 		end
 	end
 	draw()
@@ -297,7 +304,7 @@ local function buy(card: GuiObject, get: () -> Products.Offer?, props: { [string
 		end
 		-- (nothing is asked for that the server could not give and keep yet: its part of the save is not on)
 		local player = State.Player
-		if owned(offer) then
+		if owned(offer) or pending(offer) then
 			return
 		elseif offer.Kind == "Pass" then
 			MarketplaceService:PromptGamePassPurchase(player, offer.Id)
@@ -307,7 +314,14 @@ local function buy(card: GuiObject, get: () -> Products.Offer?, props: { [string
 		if not part or player:GetAttribute("Saved" .. part) ~= true then
 			return
 		end
-		MarketplaceService:PromptProductPurchase(player, offer.Id)
+		if offer.Once then
+			local purchase = Net.Folder:FindFirstChild("Purchase")
+			if purchase and purchase:IsA("RemoteEvent") then
+				purchase:FireServer("PromptOnce", offer.Id)
+			end
+		else
+			MarketplaceService:PromptProductPurchase(player, offer.Id)
+		end
 	end)
 	return draw
 end

@@ -3,63 +3,64 @@ DRY RUN | universe {universeId} | no network or file writes
   Apply lists: GET https://apis.roblox.com/game-passes/v1/universes/{universeId}/game-passes/creator (all pages)
   Reused icons: keep existing icon; upload if missing
 Starter [Product] CREATE if no match; otherwise REUSE by name
-  49 Robux | tools/robux/icons/Starter.png | {'name': 'Great White Pack', 'description': 'Colossal Great White, +50K Oxygen, +$1M, 1 hour x2 Oxygen and Cash for the whole server', 'price': '49', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  49 Robux | tools/robux/icons/Starter.png | {'name': 'Great White Pack', 'description': 'Colossal Great White, +50K Oxygen, +$1M, 1 hour x2 Oxygen and Cash for the whole server', 'price': '49', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 DoubleOxygen [Pass] CREATE if no match; otherwise REUSE by name
-  249 Robux | tools/robux/icons/DoubleOxygen.png | {'name': 'Double Oxygen', 'description': 'x2 Oxygen from your seahorse, for good', 'price': '249', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  249 Robux | tools/robux/icons/DoubleOxygen.png | {'name': 'Double Oxygen', 'description': 'x2 Oxygen from your seahorse, for good', 'price': '249', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /game-passes/v1/universes/{universeId}/game-passes (new)
   PATCH /game-passes/v1/universes/{universeId}/game-passes/{offerId} (if changes needed)
 Oxygen1 [Product] CREATE if no match; otherwise REUSE by name
-  59 Robux | tools/robux/icons/Oxygen1.png | {'name': 'Small Tank', 'description': 'Adds 50,000 to your maximum Oxygen.', 'price': '59', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  59 Robux | tools/robux/icons/Oxygen1.png | {'name': 'Small Tank', 'description': 'Adds 50,000 to your maximum Oxygen.', 'price': '59', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Oxygen2 [Product] CREATE if no match; otherwise REUSE by name
-  149 Robux | tools/robux/icons/Oxygen2.png | {'name': 'Medium Tank', 'description': 'Adds 500,000 to your maximum Oxygen.', 'price': '149', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  149 Robux | tools/robux/icons/Oxygen2.png | {'name': 'Medium Tank', 'description': 'Adds 500,000 to your maximum Oxygen.', 'price': '149', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Oxygen3 [Product] CREATE if no match; otherwise REUSE by name
-  349 Robux | tools/robux/icons/Oxygen3.png | {'name': 'Big Tank', 'description': 'Adds 5,000,000 to your maximum Oxygen.', 'price': '349', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  349 Robux | tools/robux/icons/Oxygen3.png | {'name': 'Big Tank', 'description': 'Adds 5,000,000 to your maximum Oxygen.', 'price': '349', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Oxygen4 [Product] CREATE if no match; otherwise REUSE by name
-  699 Robux | tools/robux/icons/Oxygen4.png | {'name': 'Huge Tank', 'description': 'Adds 60,000,000 to your maximum Oxygen.', 'price': '699', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  699 Robux | tools/robux/icons/Oxygen4.png | {'name': 'Huge Tank', 'description': 'Adds 60,000,000 to your maximum Oxygen.', 'price': '699', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Oxygen5 [Product] CREATE if no match; otherwise REUSE by name
-  1199 Robux | tools/robux/icons/Oxygen5.png | {'name': 'Giant Tank', 'description': 'Adds 800,000,000 to your maximum Oxygen.', 'price': '1199', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  1199 Robux | tools/robux/icons/Oxygen5.png | {'name': 'Giant Tank', 'description': 'Adds 800,000,000 to your maximum Oxygen.', 'price': '1199', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Oxygen6 [Product] CREATE if no match; otherwise REUSE by name
-  2249 Robux | tools/robux/icons/Oxygen6.png | {'name': 'Colossal Tank', 'description': 'Adds 10,000,000,000 to your maximum Oxygen.', 'price': '2249', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  2249 Robux | tools/robux/icons/Oxygen6.png | {'name': 'Colossal Tank', 'description': 'Adds 10,000,000,000 to your maximum Oxygen.', 'price': '2249', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Cash1 [Product] CREATE if no match; otherwise REUSE by name
-  49 Robux | tools/robux/icons/Cash1.png | {'name': 'Handful of Cash', 'description': 'Adds $1,000,000 to your Cash.', 'price': '49', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  49 Robux | tools/robux/icons/Cash1.png | {'name': 'Handful of Cash', 'description': 'Adds $1,000,000 to your Cash.', 'price': '49', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Cash2 [Product] CREATE if no match; otherwise REUSE by name
-  99 Robux | tools/robux/icons/Cash2.png | {'name': 'Pile of Cash', 'description': 'Adds $25,000,000 to your Cash.', 'price': '99', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  99 Robux | tools/robux/icons/Cash2.png | {'name': 'Pile of Cash', 'description': 'Adds $25,000,000 to your Cash.', 'price': '99', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Cash3 [Product] CREATE if no match; otherwise REUSE by name
-  199 Robux | tools/robux/icons/Cash3.png | {'name': 'Bag of Cash', 'description': 'Adds $1,000,000,000 to your Cash.', 'price': '199', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  199 Robux | tools/robux/icons/Cash3.png | {'name': 'Bag of Cash', 'description': 'Adds $1,000,000,000 to your Cash.', 'price': '199', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Cash4 [Product] CREATE if no match; otherwise REUSE by name
-  399 Robux | tools/robux/icons/Cash4.png | {'name': 'Crate of Cash', 'description': 'Adds $50,000,000,000 to your Cash.', 'price': '399', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  399 Robux | tools/robux/icons/Cash4.png | {'name': 'Crate of Cash', 'description': 'Adds $50,000,000,000 to your Cash.', 'price': '399', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Cash5 [Product] CREATE if no match; otherwise REUSE by name
-  699 Robux | tools/robux/icons/Cash5.png | {'name': 'Chest of Cash', 'description': 'Adds $2,000,000,000,000 to your Cash.', 'price': '699', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  699 Robux | tools/robux/icons/Cash5.png | {'name': 'Chest of Cash', 'description': 'Adds $2,000,000,000,000 to your Cash.', 'price': '699', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Cash6 [Product] CREATE if no match; otherwise REUSE by name
-  1299 Robux | tools/robux/icons/Cash6.png | {'name': 'Vault of Cash', 'description': 'Adds $75,000,000,000,000 to your Cash.', 'price': '1299', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  1299 Robux | tools/robux/icons/Cash6.png | {'name': 'Vault of Cash', 'description': 'Adds $75,000,000,000,000 to your Cash.', 'price': '1299', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 OfflineTriple [Product] CREATE if no match; otherwise REUSE by name
-  29 Robux | tools/robux/icons/OfflineTriple.png | {'name': 'Claim x3', 'description': 'Claim 3 times your Welcome Back reward.', 'price': '29', 'isForSale': 'true', 'isManagedPricingEnabled': 'false'}
+  29 Robux | tools/robux/icons/OfflineTriple.png | {'name': 'Claim x3', 'description': 'Claim 3 times your Welcome Back reward.', 'price': '29', 'isForSale': 'false', 'isManagedPricingEnabled': 'false'}
   POST /developer-products/v2/universes/{universeId}/developer-products (new)
   PATCH /developer-products/v2/universes/{universeId}/developer-products/{offerId} (if changes needed)
 Offers: 15 | Hidden: Exclusive, DoubleLuck
+Publish the game with the staged IDs, then --activate to PATCH isForSale=true on those IDs.
