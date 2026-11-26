@@ -38,6 +38,13 @@ def slate(frame):
     return n
 
 
+def pinkish(frame):
+    """A slate frame, also one fading in or out: much of the picture is the slate's pink."""
+    small = cv2.resize(frame, (64, 36), interpolation=cv2.INTER_AREA).astype(int)
+    b, g, r = small[..., 0], small[..., 1], small[..., 2]
+    return ((r - g > 60) & (b - g > 60)).mean() > 0.3
+
+
 def find_view(path):
     """(x, y, w, h) of the game's picture in a recording of a whole screen: where the pink slate is. None: all of it."""
     cap = cv2.VideoCapture(path)
@@ -139,21 +146,21 @@ def main():
     cmd += ["-c:v", "libx264", "-preset", "fast", "-crf", "16", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
     pipe = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     cap = cv2.VideoCapture(src)
-    total, before = 0, False
+    total, before, at, frame = 0, False, -1, None
     for k, n in enumerate(order):
         a, length, speed, into = CUT[n]
         first, end = shots[n]
         count = int(length / speed * FPS)
         want = [min(first + int((a + f / FPS * speed) * fps), end) for f in range(count)]
-        cap.set(cv2.CAP_PROP_POS_FRAMES, want[0])
-        at, frame = want[0] - 1, None
+        # (read forward only: seeking in a wf-recorder mkv lands early, inside the pink slate)
         for f, w in enumerate(want):
             while at < w or frame is None:
                 ok, got = cap.read()
                 at += 1
                 if not ok:
                     break
-                frame = got
+                if slate(crop(got, view)) is None and not pinkish(crop(got, view)):
+                    frame = got
             pic = fit(crop(frame, view))
             if before and f < WHIP:
                 pic = whip(pic, 1 - f / WHIP)
