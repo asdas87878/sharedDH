@@ -1403,7 +1403,7 @@ function AuraController.Start()
 			flare(player.Character, "FlareBoost")
 		end
 	end)
-	-- the 3D look's pictures on this PC: without them, the engine's own in their place
+	-- the 3D look's pictures on this PC: without them, the uploaded ones (or the engine's own) in their place
 	if STUDIO then
 		task.spawn(function()
 			local address = AuraAround.picture("Wisp")
@@ -1424,7 +1424,7 @@ function AuraController.Start()
 					end
 				end
 				warn(
-					"[AuraController] the auras' pictures are not here (tools/auras/volume_sheets.py --local): the engine's in their place"
+					"[AuraController] the auras' local pictures are not here (tools/auras/volume_sheets.py --local): the uploaded ones, or the engine's, in their place"
 				)
 			end
 		end)

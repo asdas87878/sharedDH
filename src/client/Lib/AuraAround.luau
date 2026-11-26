@@ -64,11 +64,13 @@ AuraAround.Local = RunService:IsStudio()
 
 -- A picture's address, and whether it is ours (a sheet of frames) or a stand-in; "" for none
 function AuraAround.picture(name: string): (string, boolean)
+	-- (Studio's local copies first: the uploads are the user's account's own, and a place of someone else's, Hugo's,
+	-- cannot load them)
 	local id = Auras.Sheets[name]
-	if id ~= "" then
-		return id, true
-	elseif AuraAround.Local then
+	if AuraAround.Local then
 		return `rbxasset://textures/ridefish/aura3_{string.lower(name)}_{Auras.SheetSet}.png`, true
+	elseif id ~= "" then
+		return id, true
 	end
 	return AuraAround.Standin[name] or "", false
 end

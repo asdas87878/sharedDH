@@ -8,7 +8,8 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 - **Auras:** the 3D look's twelve pictures (`Auras.Sheets`) were never uploaded, so where Studio has no local copies, and in
   any live game, the engine's smoke and fire stand in: the clouds. Fixed for Studio: `tools/studio/catch_up.py` now also
   copies them (`tools/auras/volume_sheets.py --local`); **reopen Studio after.** A live game needs the twelve png files in
-  `art/ui/aura_volume` uploaded and their ids in `Auras.Sheets`: not done, the user's word needed.
+  `art/ui/aura_volume` uploaded and their ids in `Auras.Sheets`: **done 2026-11-26 on the user's yes** (ids in
+  `art/ui/aura_volume/uploaded.json`). Studio still reads its local copies first (the uploads load only in the user's own places).
 - **Fish pile-up in later lands:** one too many that a rider going on has left behind now goes as an earlier land's fish
   does (`Spawn.OverBehind` 1; 0 is as before). `Spawn.ComeFill` 1.2 to 1, `Spawn.OverBy` 0.3 to 0.2. Not measured.
 

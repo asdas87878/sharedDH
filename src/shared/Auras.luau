@@ -133,23 +133,23 @@ Auras.SpawnNames = { "Splash", "Whirlpool", "Drop" }
 -- Studio only: a tier shown on your own player without the server (0 = off)
 Auras.Test = 0
 
--- The 3D look's pictures, uploaded: each empty until the user says yes to the upload (art/ui/aura_volume; twelve, the same
--- name in small letters). Where one is empty a live game draws an engine picture in its place, or leaves that layer out
+-- The 3D look's pictures, uploaded (art/ui/aura_volume; twelve, the same name in small letters; the user's yes,
+-- 2026-11-26, ids in art/ui/aura_volume/uploaded.json). Where one is empty a live game draws an engine picture in its place, or leaves that layer out
 -- (Lib/AuraAround.Standin); Studio reads the local copies (python tools/auras/volume_sheets.py --local). A picture that
 -- changes needs a new SheetSet: Studio keeps the old one under its name.
 Auras.Sheets = {
-	Wisp = "", -- 8x8
-	Flame = "", -- 8x8
-	Ring = "", -- 4x4, as those under it
-	Sweep = "",
-	Shock = "",
-	Jet = "",
-	Haze = "",
-	Shaft = "",
-	Mote = "",
-	Arc = "",
-	Ribbon = "", -- the Beams'
-	Glow = "", -- a still
+	Wisp = "rbxassetid://110845302401222", -- 8x8
+	Flame = "rbxassetid://106716898005719", -- 8x8
+	Ring = "rbxassetid://113561980842584", -- 4x4, as those under it
+	Sweep = "rbxassetid://110759904683167",
+	Shock = "rbxassetid://132364194906180",
+	Jet = "rbxassetid://122085904569147",
+	Haze = "rbxassetid://139431646225851",
+	Shaft = "rbxassetid://116898788136673",
+	Mote = "rbxassetid://127761797667793",
+	Arc = "rbxassetid://102570042541411",
+	Ribbon = "rbxassetid://122473233974228", -- the Beams'
+	Glow = "rbxassetid://97370050870160", -- a still
 } :: { [string]: string }
 Auras.SheetSet = "v1"
 
